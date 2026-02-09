@@ -1,0 +1,392 @@
+
+import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// ================= CONFIG =================
+const TAGS = ["akcja","fantasy","romans","drama","komedia","horror","psychologiczne","yaoi","yuri"];
+const TYPES = ["manhwa","manga","manhua","novelka","webtoon","one shot"];
+const STATUS = ["aktywne","zakończone"];
+
+const load = (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+// ================= APP =================
+export default function App() {
+  const [series, setSeries] = useState(() => load("pt_series", []));
+  const [users, setUsers] = useState(() => load("pt_users", []));
+  const [user, setUser] = useState(() => load("pt_user", null));
+
+  const [view, setView] = useState({ page: "home" });
+  const [query, setQuery] = useState("");
+  const [filterTag, setFilterTag] = useState("all");
+
+  useEffect(() => save("pt_series", series), [series]);
+  useEffect(() => save("pt_users", users), [users]);
+  useEffect(() => save("pt_user", user), [user]);
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return series.filter(s => {
+      const matchQuery =
+        s.title.toLowerCase().includes(q) ||
+        s.tags.some(t => t.toLowerCase().includes(q));
+
+      const matchTag = filterTag === "all" || s.tags.includes(filterTag);
+      return matchQuery && matchTag;
+    });
+  }, [series, query, filterTag]);
+
+  const openSeries = s => setView({ page: "series", id: s.id });
+  const current = series.find(s => s.id === view.id);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-950 via-black to-purple-950 text-purple-100">
+
+      {/* HEADER */}
+      <div className="sticky top-0 bg-purple-900 border-b border-purple-700 p-3 space-y-2">
+        <div className="flex gap-2 items-center">
+          <div className="font-bold text-xl cursor-pointer" onClick={()=>setView({page:"home"})}>
+            Psychiczne tłumaczenia
+          </div>
+
+          <Input
+            placeholder="Szukaj…"
+            value={query}
+            onChange={e=>setQuery(e.target.value)}
+            className="bg-black/40"
+          />
+
+          {user
+            ? <Button onClick={()=>setUser(null)}>Wyloguj ({user})</Button>
+            : <Button onClick={()=>setView({page:"login"})}>Login</Button>}
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
+          <Button variant={filterTag==="all"?"default":"outline"}
+            onClick={()=>setFilterTag("all")}>Wszystko</Button>
+          {TAGS.map(tag=> (
+            <Button key={tag}
+              variant={filterTag===tag?"default":"outline"}
+              onClick={()=>setFilterTag(tag)}>
+              {tag}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* NAV */}
+      <div className="p-2 flex gap-2 flex-wrap">
+        <Button onClick={()=>setView({page:"library"})}>Biblioteka</Button>
+        <Button onClick={()=>setView({page:"favorites"})}>Ulubione</Button>
+        <Button onClick={()=>setView({page:"history"})}>Historia</Button>
+        <Button onClick={()=>setView({page:"admin"})}>Panel</Button>
+      </div>
+
+      {/* ROUTES */}
+      {view.page === "home" && <Home series={series} openSeries={openSeries}/>}
+
+      {view.page === "library" &&
+        <Library series={filtered} openSeries={openSeries}/>} 
+
+      {view.page === "series" && current && (
+        <SeriesPage
+          data={current}
+          user={user}
+          update={u=>setSeries(series.map(s=>s.id===u.id?u:s))}
+        />)}
+
+      {view.page === "favorites" &&
+        <Favorites user={user} series={series} openSeries={openSeries}/>} 
+
+      {view.page === "history" &&
+        <History user={user} series={series} openSeries={openSeries}/>} 
+
+      {view.page === "admin" &&
+        <AdminPanel addSeries={s=>setSeries([...series,s])}/>} 
+
+      {view.page === "login" &&
+        <Login users={users} setUsers={setUsers} setUser={setUser}/>} 
+
+    </div>
+  );
+}
+
+// ================= HOME =================
+function Home({ series, openSeries }) {
+  return (
+    <div className="p-4 grid md:grid-cols-3 gap-4">
+      {series.slice(-6).map(s=> (
+        <Card key={s.id} onClick={()=>openSeries(s)} className="cursor-pointer hover:bg-purple-900">
+          <CardContent>
+            <div className="font-bold">{s.title}</div>
+            <div className="text-xs">{s.tags.join(", ")}</div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ================= LIBRARY =================
+function Library({ series, openSeries }) {
+  return (
+    <div className="p-4 grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {series.map(s=> (
+        <motion.div key={s.id} whileHover={{scale:1.05}}>
+          <Card onClick={()=>openSeries(s)} className="cursor-pointer hover:bg-purple-900">
+            <CardContent>
+              <div className="font-bold">{s.title}</div>
+              <div className="text-xs">{s.type} • {s.status}</div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ================= SERIES =================
+function SeriesPage({ data, update, user }) {
+  const [chapterTitle,setChapterTitle]=useState("");
+  const [chapterContent,setChapterContent]=useState("");
+  const [comment,setComment]=useState("");
+
+  const history = load("pt_history", []);
+
+  useEffect(()=>{
+    if(!user) return;
+    const updated=[...history.filter(h=>h!==data.id),data.id];
+    save("pt_history",updated);
+  },[data.id,user]);
+
+  const toggleFavorite=()=>{
+    if(!user) return;
+    const fav=data.favorites||[];
+
+    update({
+      ...data,
+      favorites:fav.includes(user)
+        ? fav.filter(u=>u!==user)
+        : [...fav,user]
+    });
+  };
+
+  const addChapter=()=>{
+    if(!chapterTitle) return;
+
+    update({
+      ...data,
+      chapters:[
+        ...data.chapters,
+        {
+          id:crypto.randomUUID(),
+          title:chapterTitle,
+          content:chapterContent,
+          rating:0,
+          comments:[]
+        }
+      ]
+    });
+
+    setChapterTitle("");
+    setChapterContent("");
+  };
+
+  const addComment=id=>{
+    if(!user || !comment) return;
+
+    update({
+      ...data,
+      chapters:data.chapters.map(c=>
+        c.id===id
+          ? {...c,comments:[...c.comments,{user,text:comment}]}
+          : c
+      )
+    });
+
+    setComment("");
+  };
+
+  const rate=id=>{
+    update({
+      ...data,
+      chapters:data.chapters.map(c=>
+        c.id===id?{...c,rating:c.rating+1}:c
+      )
+    });
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+
+      <Card>
+        <CardContent>
+          <h1 className="text-2xl font-bold">{data.title}</h1>
+          <p>{data.description}</p>
+          <Button onClick={toggleFavorite}>
+            ⭐ Ulubione
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-2">
+          <h3>Dodaj rozdział</h3>
+          <Input placeholder="Tytuł" value={chapterTitle} onChange={e=>setChapterTitle(e.target.value)}/>
+          <Textarea placeholder="Treść / linki do obrazów" value={chapterContent} onChange={e=>setChapterContent(e.target.value)}/>
+          <Button onClick={addChapter}>Dodaj</Button>
+        </CardContent>
+      </Card>
+
+      {data.chapters.map(ch=> (
+        <Card key={ch.id}>
+          <CardContent>
+            <h3 className="font-bold">{ch.title}</h3>
+            <div className="whitespace-pre-wrap">{ch.content}</div>
+
+            <div className="flex gap-2 items-center">
+              <Button onClick={()=>rate(ch.id)}>👍</Button>
+              <span>Ocena: {ch.rating}</span>
+            </div>
+
+            <h4>Komentarze</h4>
+            {ch.comments.map((c,i)=>(
+              <div key={i}>{c.user}: {c.text}</div>
+            ))}
+
+            <div className="flex gap-2 mt-2">
+              <Input value={comment} onChange={e=>setComment(e.target.value)} placeholder="Komentarz…"/>
+              <Button onClick={()=>addComment(ch.id)}>Dodaj</Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+    </div>
+  );
+}
+
+// ================= FAVORITES =================
+function Favorites({ user,series,openSeries }) {
+  if(!user) return <div className="p-4">Zaloguj się.</div>;
+
+  const fav=series.filter(s=>s.favorites?.includes(user));
+
+  return (
+    <div className="p-4 grid md:grid-cols-3 gap-4">
+      {fav.map(s=>(
+        <Card key={s.id} onClick={()=>openSeries(s)} className="cursor-pointer hover:bg-purple-900">
+          <CardContent>{s.title}</CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ================= HISTORY =================
+function History({ user,series,openSeries }) {
+  if(!user) return <div className="p-4">Zaloguj się.</div>;
+
+  const hist=load("pt_history",[])
+    .map(id=>series.find(s=>s.id===id))
+    .filter(Boolean)
+    .reverse();
+
+  return (
+    <div className="p-4 grid md:grid-cols-3 gap-4">
+      {hist.map(s=>(
+        <Card key={s.id} onClick={()=>openSeries(s)} className="cursor-pointer hover:bg-purple-900">
+          <CardContent>{s.title}</CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ================= ADMIN =================
+function AdminPanel({ addSeries }) {
+  const [title,setTitle]=useState("");
+  const [desc,setDesc]=useState("");
+  const [tags,setTags]=useState([]);
+  const [type,setType]=useState(TYPES[0]);
+  const [status,setStatus]=useState(STATUS[0]);
+
+  const create=()=>{
+    if(!title) return;
+
+    addSeries({
+      id:crypto.randomUUID(),
+      title,
+      description:desc,
+      tags,
+      type,
+      status,
+      favorites:[],
+      chapters:[]
+    });
+
+    setTitle("");
+    setDesc("");
+    setTags([]);
+  };
+
+  return (
+    <div className="p-4">
+      <Card>
+        <CardContent className="space-y-2">
+          <Input placeholder="Tytuł" value={title} onChange={e=>setTitle(e.target.value)}/>
+          <Textarea placeholder="Opis" value={desc} onChange={e=>setDesc(e.target.value)}/>
+
+          <Select onValueChange={setType}>
+            <SelectTrigger><SelectValue placeholder="Typ"/></SelectTrigger>
+            <SelectContent>{TYPES.map(t=><SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+          </Select>
+
+          <Select onValueChange={setStatus}>
+            <SelectTrigger><SelectValue placeholder="Status"/></SelectTrigger>
+            <SelectContent>{STATUS.map(s=><SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+          </Select>
+
+          <div className="flex flex-wrap gap-2">
+            {TAGS.map(t=>(
+              <Button key={t}
+                variant={tags.includes(t)?"default":"outline"}
+                onClick={()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])}>
+                {t}
+              </Button>
+            ))}
+          </div>
+
+          <Button onClick={create}>Dodaj serię</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ================= LOGIN =================
+function Login({ users,setUsers,setUser }) {
+  const [name,setName]=useState("");
+
+  const login=()=>{
+    if(!name) return;
+    if(!users.includes(name)) setUsers([...users,name]);
+    setUser(name);
+  };
+
+  return (
+    <div className="p-4 max-w-sm mx-auto">
+      <Card>
+        <CardContent className="space-y-2">
+          <Input placeholder="Nick" value={name} onChange={e=>setName(e.target.value)}/>
+          <Button onClick={login}>Wejdź</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

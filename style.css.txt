@@ -1,0 +1,80 @@
+:root {
+grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+gap: 16px;
+}
+
+
+.cover-placeholder {
+height: 240px;
+border-radius: 12px;
+background: linear-gradient(135deg, #2e1065, #1e1b4b);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 14px;
+opacity: 0.8;
+}
+
+
+.reader-page {
+max-width: 900px;
+margin: auto;
+background: #000;
+border-radius: 12px;
+overflow: hidden;
+}
+
+
+.reader-page img {
+width: 100%;
+display: block;
+}
+
+
+.btn-accent {
+background: var(--accent);
+color: white;
+border: none;
+padding: 8px 14px;
+border-radius: 999px;
+cursor: pointer;
+transition: 0.2s;
+}
+
+
+.btn-accent:hover {
+background: #6d28d9;
+}
+
+
+.input-dark {
+background: #0f001f;
+border: 1px solid var(--border);
+color: var(--text-main);
+border-radius: 8px;
+padding: 8px;
+}
+
+
+.tag-chip {
+background: #2e1065;
+border: 1px solid var(--border);
+padding: 4px 8px;
+border-radius: 999px;
+font-size: 12px;
+}
+
+
+.fade-in {
+animation: fadeIn 0.25s ease forwards;
+}
+
+
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(5px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ====================================================== */
+
