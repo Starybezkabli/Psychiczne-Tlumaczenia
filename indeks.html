@@ -2,18 +2,18 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Psychiczne tłumaczenia</title>
 
-<!-- React CDN -->
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<!-- React CDN — GitHub safe -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <style>
-/* ===== GLOBAL STYLE — DARK PURPLE ===== */
 body{
 margin:0;
-font-family:system-ui, sans-serif;
+font-family:system-ui,sans-serif;
 background:linear-gradient(#120022,#000);
 color:#e9d5ff;
 }
@@ -39,6 +39,7 @@ border:1px solid #5b21b6;
 color:white;
 padding:8px;
 border-radius:6px;
+margin-bottom:6px;
 }
 
 button{
@@ -48,8 +49,8 @@ padding:8px 12px;
 border-radius:6px;
 color:white;
 cursor:pointer;
+margin:2px;
 }
-
 button:hover{background:#7c3aed;}
 
 .card{
@@ -90,17 +91,18 @@ border-radius:8px;
 
 <script type="text/babel">
 
-/* ===== DATA ===== */
+/* ========= CONSTANTS ========= */
 const TAGS=[
-"yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele","psychologiczne","szkolne","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","potwory","magiczne","auta","wyścigi","drama","demony","anioły","komedia","duchy","dla dorosłych","gry","zemsta"
+"yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demon y","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"
 ];
 
 const TYPES=["manhwa","manga","manhua","novelka","webtoon","one shot"];
 
+const uid=()=>Date.now()+Math.random();
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 
-/* ===== APP ===== */
+/* ========= APP ========= */
 function App(){
 
 const [series,setSeries]=React.useState(load("series",[]));
@@ -114,23 +116,18 @@ React.useEffect(()=>save("series",series),[series]);
 React.useEffect(()=>save("user",user),[user]);
 
 const filtered=series.filter(s=>
-s.title.toLowerCase().includes(query.toLowerCase())||
-s.tags.some(t=>t.includes(query.toLowerCase()))
+(s.title||"").toLowerCase().includes(query.toLowerCase())||
+(s.tags||[]).some(t=>t.toLowerCase().includes(query.toLowerCase()))
 );
 
 return(
 <div>
 
 <header>
-<div style={{display:"flex",gap:8,alignItems:"center"}}>
-<b style={{fontSize:20,cursor:"pointer"}}
-onClick={()=>setView("home")}>
-Psychiczne tłumaczenia
-</b>
+<div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+<b style={{fontSize:20,cursor:"pointer"}} onClick={()=>setView("home")}>Psychiczne tłumaczenia</b>
 
-<input placeholder="Szukaj tytułu/tagu…"
-value={query}
-onChange={e=>setQuery(e.target.value)}/>
+<input placeholder="Szukaj…" value={query} onChange={e=>setQuery(e.target.value)}/>
 
 <button onClick={()=>setMenu(!menu)}>☰</button>
 
@@ -147,59 +144,52 @@ onChange={e=>setQuery(e.target.value)}/>
 
 {menu&&(
 <div className="card">
-{series.map(s=>(
-<div key={s.id}
-style={{cursor:"pointer"}}
+{series.map(s=>
+<div key={s.id} style={{cursor:"pointer"}}
 onClick={()=>{setActive(s);setView("series");setMenu(false);}}>
 {s.title}
 </div>
-))}
+)}
 </div>
 )}
+
 </header>
 
 <div style={{padding:12}}>
 
-{view==="home"&&
-<Home series={filtered}
-open={s=>{setActive(s);setView("series");}}/>}
+{view==="home"&&<Home series={filtered} open={s=>{setActive(s);setView("series");}}/>}
 
 {view==="series"&&active&&
-<Series data={active}
-user={user}
+<Series data={active} user={user}
 update={u=>{
 setSeries(series.map(s=>s.id===u.id?u:s));
 setActive(u);
 }}/>}
 
-{view==="admin"&&
-<Admin add={s=>setSeries([...series,s])}/>}
+{view==="admin"&&<Admin add={s=>setSeries([...series,s])}/>}
 
-{view==="login"&&
-<Login setUser={setUser}/>}
+{view==="login"&&<Login setUser={setUser}/>}
 
 </div>
 </div>
 );
 }
 
-/* ===== HOME ===== */
+/* ========= HOME ========= */
 function Home({series,open}){
 return(
 <div className="grid">
-{series.map(s=>(
-<div key={s.id}
-className="card"
-onClick={()=>open(s)}>
+{series.map(s=>
+<div key={s.id} className="card" onClick={()=>open(s)}>
 <b>{s.title}</b>
-<div>{s.tags.map(t=><span key={t} className="tag">{t}</span>)}</div>
+<div>{(s.tags||[]).map(t=><span key={t} className="tag">{t}</span>)}</div>
 </div>
-))}
+)}
 </div>
 );
 }
 
-/* ===== SERIES PAGE ===== */
+/* ========= SERIES ========= */
 function Series({data,update,user}){
 
 const [ctitle,setCtitle]=React.useState("");
@@ -220,9 +210,10 @@ if(!ctitle)return;
 update({
 ...data,
 chapters:[...(data.chapters||[]),
-{id:crypto.randomUUID(),title:ctitle,images:cimages,comments:[],rating:0}]
+{id:uid(),title:ctitle,images:cimages,comments:[],rating:0}]
 });
-setCtitle("");setCimages([]);
+setCtitle("");
+setCimages([]);
 }
 
 function addComment(id){
@@ -232,7 +223,8 @@ update({
 chapters:data.chapters.map(c=>
 c.id===id
 ?{...c,comments:[...c.comments,{user,text:comment}]}
-:c)
+:c
+)
 });
 setComment("");
 }
@@ -241,7 +233,8 @@ function rate(id){
 update({
 ...data,
 chapters:data.chapters.map(c=>
-c.id===id?{...c,rating:c.rating+1}:c)
+c.id===id?{...c,rating:c.rating+1}:c
+)
 });
 }
 
@@ -255,42 +248,33 @@ return(
 
 <div className="card">
 <h3>Dodaj rozdział</h3>
-<input placeholder="Tytuł"
-value={ctitle}
-onChange={e=>setCtitle(e.target.value)}/>
-
+<input placeholder="Tytuł" value={ctitle} onChange={e=>setCtitle(e.target.value)}/>
 <input type="file" multiple accept="image/*" onChange={upload}/>
-<button onClick={addChapter}>Dodaj rozdział</button>
+<button onClick={addChapter}>Dodaj</button>
 </div>
 
-{(data.chapters||[]).map(ch=>(
+{(data.chapters||[]).map(ch=>
 <div key={ch.id} className="card">
 <b>{ch.title}</b>
-
 <div className="reader">
 {ch.images.map((img,i)=><img key={i} src={img}/>) }
 </div>
-
 <button onClick={()=>rate(ch.id)}>👍 {ch.rating}</button>
 
 <h4>Komentarze</h4>
-{ch.comments.map((c,i)=>(
-<div key={i}><b>{c.user}:</b> {c.text}</div>
-))}
+{ch.comments.map((c,i)=><div key={i}><b>{c.user}:</b> {c.text}</div>)}
 
-<input placeholder="Komentarz…"
-value={comment}
-onChange={e=>setComment(e.target.value)}/>
+<input placeholder="Komentarz" value={comment} onChange={e=>setComment(e.target.value)}/>
 <button onClick={()=>addComment(ch.id)}>Dodaj</button>
 
 </div>
-))}
+)}
 
 </div>
 );
 }
 
-/* ===== ADMIN ===== */
+/* ========= ADMIN ========= */
 function Admin({add}){
 
 const [title,setTitle]=React.useState("");
@@ -300,42 +284,28 @@ const [type,setType]=React.useState(TYPES[0]);
 
 function create(){
 if(!title)return;
-add({
-id:crypto.randomUUID(),
-title,
-description:desc,
-type,
-tags,
-chapters:[]
-});
+add({id:uid(),title,description:desc,type,tags,chapters:[]});
 setTitle("");setDesc("");setTags([]);
 }
 
 return(
 <div className="card">
 <h3>Dodaj serię</h3>
-<input placeholder="Tytuł"
-value={title}
-onChange={e=>setTitle(e.target.value)}/>
-<textarea placeholder="Opis"
-value={desc}
-onChange={e=>setDesc(e.target.value)}/>
+<input placeholder="Tytuł" value={title} onChange={e=>setTitle(e.target.value)}/>
+<textarea placeholder="Opis" value={desc} onChange={e=>setDesc(e.target.value)}/>
 
 <select value={type} onChange={e=>setType(e.target.value)}>
 {TYPES.map(t=><option key={t}>{t}</option>)}
 </select>
 
 <div>
-{TAGS.map(t=>(
-<span key={t}
-className="tag"
+{TAGS.map(t=>
+<span key={t} className="tag"
 style={{background:tags.includes(t)?"#9333ea":"#3b0764"}}
-onClick={()=>setTags(
-tags.includes(t)?tags.filter(x=>x!==t):[...tags,t]
-)}>
+onClick={()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])}>
 {t}
 </span>
-))}
+)}
 </div>
 
 <button onClick={create}>Dodaj serię</button>
@@ -343,14 +313,12 @@ tags.includes(t)?tags.filter(x=>x!==t):[...tags,t]
 );
 }
 
-/* ===== LOGIN ===== */
+/* ========= LOGIN ========= */
 function Login({setUser}){
 const [name,setName]=React.useState("");
 return(
 <div className="card">
-<input placeholder="Nick"
-value={name}
-onChange={e=>setName(e.target.value)}/>
+<input placeholder="Nick" value={name} onChange={e=>setName(e.target.value)}/>
 <button onClick={()=>setUser(name)}>Wejdź</button>
 </div>
 );
@@ -361,4 +329,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
-
