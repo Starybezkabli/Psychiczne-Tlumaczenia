@@ -37,10 +37,10 @@ footer{margin-top:40px;padding:20px;background:#140028;border-top:1px solid #5b2
 <body>
 <div id="root"></div>
 <script>
-const e=React.createElement;
+const e = React.createElement;
 
 // ADMIN
-const ADMIN={mail:"valerii000vall@gmail.com",pass:"pika6969",name:"StaryBezKabli"};
+const ADMIN = {mail:"valerii000vall@gmail.com",pass:"pika6969",name:"StaryBezKabli"};
 
 // TAGS
 const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
@@ -51,95 +51,85 @@ const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwaw
 "zemsta","klątwy"];
 
 // STORAGE
-const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
-const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const uid=()=>Date.now()+Math.random();
+const load = (k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const save = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const uid = ()=>Date.now()+Math.random();
 
+// -----------------------------------------
 // APP
 function App(){
- const [series,setSeries]=React.useState(load("series",[]));
- const [accounts,setAccounts]=React.useState(load("accounts",{}));
- const [user,setUser]=React.useState(load("user",null));
- const [favorites,setFavorites]=React.useState(load("favorites",[]));
- const [history,setHistory]=React.useState(load("history",[]));
- const [team,setTeam]=React.useState(load("team",[]));
- const [comments,setComments]=React.useState(load("comments",[]));
- const [view,setView]=React.useState("home");
- const [active,setActive]=React.useState(null);
- const [reader,setReader]=React.useState(null);
- const [query,setQuery]=React.useState("");
- const [selectedTags,setSelectedTags]=React.useState([]);
- const [showSearch,setShowSearch]=React.useState(false);
+  const [series,setSeries] = React.useState(load("series",[]));
+  const [accounts,setAccounts] = React.useState(load("accounts",{}));
+  const [user,setUser] = React.useState(load("user",null));
+  const [favorites,setFavorites] = React.useState(load("favorites",[]));
+  const [history,setHistory] = React.useState(load("history",[]));
+  const [team,setTeam] = React.useState(load("team",[]));
+  const [comments,setComments] = React.useState(load("comments",[]));
+  const [view,setView] = React.useState("home");
+  const [active,setActive] = React.useState(null);
+  const [reader,setReader] = React.useState(null);
+  const [query,setQuery] = React.useState("");
+  const [selectedTags,setSelectedTags] = React.useState([]);
+  const [showSearch,setShowSearch] = React.useState(false);
 
- React.useEffect(()=>save("series",series),[series]);
- React.useEffect(()=>save("accounts",accounts),[accounts]);
- React.useEffect(()=>save("user",user),[user]);
- React.useEffect(()=>save("favorites",favorites),[favorites]);
- React.useEffect(()=>save("team",team),[team]);
- React.useEffect(()=>save("comments",comments),[comments]);
- React.useEffect(()=>save("history",history),[history]);
+  React.useEffect(()=>save("series",series),[series]);
+  React.useEffect(()=>save("accounts",accounts),[accounts]);
+  React.useEffect(()=>save("user",user),[user]);
+  React.useEffect(()=>save("favorites",favorites),[favorites]);
+  React.useEffect(()=>save("team",team),[team]);
+  React.useEffect(()=>save("comments",comments),[comments]);
+  React.useEffect(()=>save("history",history),[history]);
 
- const isAdmin=user?.mail===ADMIN.mail;
- const isMod=user && (accounts[user.mail]?.role==="mod" || isAdmin);
+  const isAdmin = user?.mail===ADMIN.mail;
+  const isMod = user && (accounts[user.mail]?.role==="mod" || isAdmin);
 
- const topSeries=[...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
+  const topSeries = [...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
+  const filtered = series.filter(s=>{
+    const q = query.toLowerCase();
+    const text = !q || s.title.toLowerCase().includes(q);
+    const tags = !selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
+    return text && tags;
+  });
 
- const filtered=series.filter(s=>{
-  const q=query.toLowerCase();
-  const text=!q||s.title.toLowerCase().includes(q);
-  const tags=!selectedTags.length||selectedTags.every(t=>s.tags.includes(t));
-  return text&&tags;
- });
+  function toggleFav(id){ setFavorites(favorites.includes(id)?favorites.filter(f=>f!==id):[...favorites,id]); }
+  function addSeries(s){ if(isAdmin){ setSeries([...series,s]); setView("home"); } }
+  function deleteSeries(id){ if(isAdmin) setSeries(series.filter(s=>s.id!==id)); }
+  function addCommentGlobal(userName,text){ if(!text.trim())return; setComments([{id:uid(),user:userName,text},...comments]); }
+  function addHistory(entry){ setHistory(prev=>[{id:uid(),...entry,time:Date.now()}, ...prev.slice(0,49)]); }
 
- function toggleFav(id){ setFavorites(favorites.includes(id)?favorites.filter(f=>f!==id):[...favorites,id]); }
- function addSeries(s){ if(isAdmin){ setSeries([...series,s]); setView("home"); } }
- function deleteSeries(id){ if(isAdmin) setSeries(series.filter(s=>s.id!==id)); }
- function addCommentGlobal(userName,text){ if(!text.trim())return; setComments([{id:uid(),user:userName,text},...comments]); }
- function addHistory(entry){ setHistory(prev=>[{id:uid(),...entry,time:Date.now()}, ...prev.slice(0,49)]); }
-
- return e("div",null,
-  e("header",null,
-   e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
-   e("input",{placeholder:"Szukaj…",value:query,onFocus:()=>setShowSearch(true),onChange:e=>setQuery(e.target.value)}),
-   isAdmin && e("button",{onClick:()=>setView("add")},"+ Dodaj tytuł"),
-   e("button",{onClick:()=>setView("library")},"Biblioteka"),
-   e("button",{onClick:()=>setView("profile")},"Profil"),
-   isAdmin && e("button",{onClick:()=>setView("admin")},"Panel Admin"),
-   user?e("button",{onClick:()=>setUser(null)},"Wyloguj")
-       :e("button",{onClick:()=>setView("login")},"Login"),
-   showSearch && e("div",{className:"searchPanel"},
-     e("b",null,"Filtruj tagi:"),
-     TAGS.map(t=>e("span",{key:t,className:"tag",
-       style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
-       onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
-     },t))
-   )
-  ),
-  e("div",{style:{padding:12}},
-   view==="home" && e(Home,{
-     series:filtered,
-     topSeries,
-     open:s=>{setActive(s);setView("series");},
-     favorites,
-     toggleFav,
-     isAdmin,
-     team,
-     setTeam,
-     comments,
-     addCommentGlobal
-   }),
-   view==="series" && active && e(SeriesComp,{data:active,setSeries,user,isAdmin,isMod,setReader,addHistory,comments,setComments}),
-   view==="library" && e(LibraryComp,{series,favorites,open:s=>{setActive(s);setView("series");}}),
-   view==="add" && e(AddSeriesComp,{add:addSeries}),
-   view==="login" && e(LoginComp,{accounts,setAccounts,setUser}),
-   view==="profile" && e(ProfileComp,{user,accounts,setAccounts,history}),
-   view==="admin" && isAdmin && e(AdminPanel,{accounts,setAccounts,series,setSeries,team,setTeam})
-  ),
-  reader && e(ReaderComp,{chapter:reader,onClose:()=>setReader(null)})
- );
+  return e("div",null,
+    e("header",null,
+      e("b",{style:{cursor:"pointer"}, onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
+      e("input",{placeholder:"Szukaj…", value:query, onFocus:()=>setShowSearch(true), onChange:e=>setQuery(e.target.value)}),
+      isAdmin && e("button",{onClick:()=>setView("add")},"+ Dodaj tytuł"),
+      e("button",{onClick:()=>setView("library")},"Biblioteka"),
+      e("button",{onClick:()=>setView("profile")},"Profil"),
+      isAdmin && e("button",{onClick:()=>setView("admin")},"Panel Admin"),
+      user? e("button",{onClick:()=>setUser(null)},"Wyloguj")
+           : e("button",{onClick:()=>setView("login")},"Login"),
+      showSearch && e("div",{className:"searchPanel"},
+        e("b",null,"Filtruj tagi:"),
+        TAGS.map(t=>e("span",{key:t,className:"tag",
+          style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
+          onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
+        },t))
+      )
+    ),
+    e("div",{style:{padding:12}},
+      view==="home" && e(Home,{series:filtered, topSeries, open:s=>{setActive(s);setView("series");}, favorites, toggleFav, isAdmin, team, setTeam, comments, addCommentGlobal}),
+      view==="series" && active && e(SeriesComp,{data:active,setSeries,user,isAdmin,isMod,setReader,addHistory,comments,setComments}),
+      view==="library" && e(LibraryComp,{series,favorites,open:s=>{setActive(s);setView("series");}}),
+      view==="add" && e(AddSeriesComp,{add:addSeries}),
+      view==="login" && e(LoginComp,{accounts,setAccounts,setUser}),
+      view==="profile" && e(ProfileComp,{user,accounts,setAccounts,history}),
+      view==="admin" && isAdmin && e(AdminPanel,{accounts,setAccounts,series,setSeries,team,setTeam})
+    ),
+    reader && e(ReaderComp,{chapter:reader,onClose:()=>setReader(null)})
+  );
 }
 
 // -----------------------------------------
+// COMPONENTS
 // HOME
 function Home({series, topSeries, open, favorites, toggleFav, isAdmin, team, setTeam, comments, addCommentGlobal}){
   const [name,setName]=React.useState("");
@@ -322,7 +312,7 @@ function ProfileComp({user,accounts,setAccounts,history}){
   function upload(e){
     const r=new FileReader();
     r.onload=()=>{
-      const updated={...accounts,[user.mail]:{...acc,avatar:r.result}};
+      const updated={...accounts,[user.mail]:{...acc,avatar:r.result,name:user.name,password:acc.password,role:acc.role}};
       setAccounts(updated); setAvatar(r.result);
     };
     r.readAsDataURL(e.target.files[0]);
@@ -396,7 +386,7 @@ function LoginComp({accounts,setAccounts,setUser}){
     if(acc && acc.password!==pass) return alert("Złe hasło");
     const updated={...accounts,[mail]:{name,password:pass,role:"user"}};
     setAccounts(updated);
-    setUser({name,mail});
+    setUser({name:name||mail,mail});
   }
 
   return e("div",{className:"card"},
@@ -416,6 +406,8 @@ function RatingComp({series}){
   return e("div",null,[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=rating?"#facc15":"#555"},onClick:()=>rate(v)},"★")));
 }
 
+// -----------------------------------------
+// RENDER
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 </script>
 </body>
