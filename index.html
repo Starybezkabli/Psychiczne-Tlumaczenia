@@ -1,3 +1,6 @@
+
+
+
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -5,6 +8,28 @@
 <title>Psychiczne tłumaczenia — Ultimate Reader+</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script type="module">
+// ---------------------- FIREBASE ----------------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
+// Konfiguracja Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
+  authDomain: "psychicznetlumaczenia-34d74.firebaseapp.com",
+  projectId: "psychicznetlumaczenia-34d74",
+  storageBucket: "psychicznetlumaczenia-34d74.appspot.com",
+  messagingSenderId: "972303060927",
+  appId: "1:972303060927:web:3a7a84dd3cc8963bd25b0a",
+  measurementId: "G-W04TWH51KD"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+// ---------------------- END FIREBASE ----------------------
+</script>
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
 header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -33,38 +58,42 @@ footer{margin-top:40px;padding:20px;background:#140028;border-top:1px solid #5b2
   header{flex-direction:column;align-items:flex-start;}
 }
 </style>
-</head>
 <body>
 <div id="root"></div>
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
 const e = React.createElement;
 
-// ADMIN
-const ADMIN = {mail:"valerii000vall@gmail.com",pass:"pika6969",name:"StaryBezKabli"};
+// TAGI
+const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
 
-// TAGS
-const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
-"wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici",
-"szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory",
-"magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia",
-"duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze",
-"zemsta","klątwy"];
-
-// STORAGE
-const load = (k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
-const save = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const uid = ()=>Date.now()+Math.random();
 
-// -----------------------------------------
-// APP
+// ------------------------- FIRESTORE HELPERS -------------------------
+const seriesCol = collection(db,"series");
+const commentsCol = collection(db,"comments");
+
+// Pobieranie serii w czasie rzeczywistym
+async function listenSeries(callback){
+  onSnapshot(seriesCol,snap=>{
+    const data = snap.docs.map(d=>({id:d.id,...d.data()}));
+    callback(data);
+  });
+}
+
+// Dodaj nową serię
+async function addSeriesFirebase(s){
+  await addDoc(seriesCol,s);
+}
+
+// ------------------------- APP -------------------------
 function App(){
-  const [series,setSeries] = React.useState(load("series",[]));
-  const [accounts,setAccounts] = React.useState(load("accounts",{}));
-  const [user,setUser] = React.useState(load("user",null));
-  const [favorites,setFavorites] = React.useState(load("favorites",[]));
-  const [history,setHistory] = React.useState(load("history",[]));
-  const [team,setTeam] = React.useState(load("team",[]));
-  const [comments,setComments] = React.useState(load("comments",[]));
+  const [series,setSeries] = React.useState([]);
+  const [user,setUser] = React.useState(null);
+  const [favorites,setFavorites] = React.useState([]);
   const [view,setView] = React.useState("home");
   const [active,setActive] = React.useState(null);
   const [reader,setReader] = React.useState(null);
@@ -72,16 +101,13 @@ function App(){
   const [selectedTags,setSelectedTags] = React.useState([]);
   const [showSearch,setShowSearch] = React.useState(false);
 
-  React.useEffect(()=>save("series",series),[series]);
-  React.useEffect(()=>save("accounts",accounts),[accounts]);
-  React.useEffect(()=>save("user",user),[user]);
-  React.useEffect(()=>save("favorites",favorites),[favorites]);
-  React.useEffect(()=>save("team",team),[team]);
-  React.useEffect(()=>save("comments",comments),[comments]);
-  React.useEffect(()=>save("history",history),[history]);
-
-  const isAdmin = user?.mail===ADMIN.mail;
-  const isMod = user && (accounts[user.mail]?.role==="mod" || isAdmin);
+  React.useEffect(()=>{
+    listenSeries(setSeries);
+    onAuthStateChanged(auth,u=>{
+      if(u) setUser({name:u.email,mail:u.email});
+      else setUser(null);
+    });
+  },[]);
 
   const topSeries = [...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
   const filtered = series.filter(s=>{
@@ -91,21 +117,13 @@ function App(){
     return text && tags;
   });
 
-  function toggleFav(id){ setFavorites(favorites.includes(id)?favorites.filter(f=>f!==id):[...favorites,id]); }
-  function addSeries(s){ if(isAdmin){ setSeries([...series,s]); setView("home"); } }
-  function deleteSeries(id){ if(isAdmin) setSeries(series.filter(s=>s.id!==id)); }
-  function addCommentGlobal(userName,text){ if(!text.trim())return; setComments([{id:uid(),user:userName,text},...comments]); }
-  function addHistory(entry){ setHistory(prev=>[{id:uid(),...entry,time:Date.now()}, ...prev.slice(0,49)]); }
-
   return e("div",null,
     e("header",null,
       e("b",{style:{cursor:"pointer"}, onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
       e("input",{placeholder:"Szukaj…", value:query, onFocus:()=>setShowSearch(true), onChange:e=>setQuery(e.target.value)}),
-      isAdmin && e("button",{onClick:()=>setView("add")},"+ Dodaj tytuł"),
       e("button",{onClick:()=>setView("library")},"Biblioteka"),
       e("button",{onClick:()=>setView("profile")},"Profil"),
-      isAdmin && e("button",{onClick:()=>setView("admin")},"Panel Admin"),
-      user? e("button",{onClick:()=>setUser(null)},"Wyloguj")
+      user? e("button",{onClick:()=>signOut(auth)},"Wyloguj")
            : e("button",{onClick:()=>setView("login")},"Login"),
       showSearch && e("div",{className:"searchPanel"},
         e("b",null,"Filtruj tagi:"),
@@ -116,13 +134,12 @@ function App(){
       )
     ),
     e("div",{style:{padding:12}},
-      view==="home" && e(Home,{series:filtered, topSeries, open:s=>{setActive(s);setView("series");}, favorites, toggleFav, isAdmin, team, setTeam, comments, addCommentGlobal}),
-      view==="series" && active && e(SeriesComp,{data:active,setSeries,user,isAdmin,isMod,setReader,addHistory,comments,setComments}),
+      view==="home" && e(Home,{series:filtered, topSeries, open:s=>{setActive(s);setView("series");}}),
+      view==="series" && active && e(SeriesComp,{data:active,setSeries}),
       view==="library" && e(LibraryComp,{series,favorites,open:s=>{setActive(s);setView("series");}}),
-      view==="add" && e(AddSeriesComp,{add:addSeries}),
-      view==="login" && e(LoginComp,{accounts,setAccounts,setUser}),
-      view==="profile" && e(ProfileComp,{user,accounts,setAccounts,history}),
-      view==="admin" && isAdmin && e(AdminPanel,{accounts,setAccounts,series,setSeries,team,setTeam})
+      view==="add" && e(AddSeriesComp,{add:addSeriesFirebase}),
+      view==="login" && e(LoginComp,{setUser}),
+      view==="profile" && e(ProfileComp,{user})
     ),
     reader && e(ReaderComp,{chapter:reader,onClose:()=>setReader(null)})
   );
@@ -406,8 +423,7 @@ function RatingComp({series}){
   return e("div",null,[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=rating?"#facc15":"#555"},onClick:()=>rate(v)},"★")));
 }
 
-// -----------------------------------------
-// RENDER
+// ------------------------- RENDER -------------------------
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 </script>
 </body>
