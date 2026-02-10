@@ -6,12 +6,11 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script type="module">
-// ---------------------- FIREBASE ----------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
-// Konfiguracja Firebase
+// ---------------------- FIREBASE ----------------------
 const firebaseConfig = {
   apiKey: "AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
   authDomain: "psychicznetlumaczenia-34d74.firebaseapp.com",
@@ -21,175 +20,105 @@ const firebaseConfig = {
   appId: "1:972303060927:web:3a7a84dd3cc8963bd25b0a",
   measurementId: "G-W04TWH51KD"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-// ---------------------- END FIREBASE ----------------------
-</script>
-<style>
-body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
-header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-input,textarea,select{width:100%;background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin-bottom:6px;box-sizing:border-box}
-button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
-button:hover{background:#7c3aed}
-.card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin-bottom:12px;box-sizing:border-box}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
-.cover{width:100%;height:260px;object-fit:cover;border-radius:8px;cursor:pointer}
-.chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
-.readerOverlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
-.readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.reader{max-width:900px;margin:auto}
-.reader img{width:100%;display:block;margin:0 auto 6px auto}
-.searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px;max-height:300px;overflow:auto}
-.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #7c3aed}
-.smallAvatar{width:40px;height:40px;border-radius:50%;object-fit:cover}
-.teamMember{display:flex;gap:10px;align-items:center;margin:6px 0}
-footer{margin-top:40px;padding:20px;background:#140028;border-top:1px solid #5b21b6}
-.comment{margin:4px 0;padding:4px;border-bottom:1px solid #5b21b6}
-.stat{background:#14002a;padding:6px;border-radius:6px;margin:4px 0}
-@media (max-width:600px){
-  .cover{height:180px;}
-  .reader{padding:8px;}
-  header{flex-direction:column;align-items:flex-start;}
-}
-</style>
-<body>
-<div id="root"></div>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
+// ---------------------- HELPERS ----------------------
 const e = React.createElement;
-
-// TAGI
-const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
-
+const TAGS=[const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
 const uid = ()=>Date.now()+Math.random();
-
-// ------------------------- FIRESTORE HELPERS -------------------------
 const seriesCol = collection(db,"series");
-const commentsCol = collection(db,"comments");
 
-// Pobieranie serii w czasie rzeczywistym
-async function listenSeries(callback){
-  onSnapshot(seriesCol,snap=>{
-    const data = snap.docs.map(d=>({id:d.id,...d.data()}));
-    callback(data);
-  });
-}
+// Firestore helpers
+function listenSeries(cb){ onSnapshot(seriesCol,snap=>cb(snap.docs.map(d=>({id:d.id,...d.data()})))) }
+async function addSeriesFirebase(s){ await addDoc(seriesCol,s) }
+async function updateSeries(id,data){ await updateDoc(doc(db,"series",id),data) }
 
-// Dodaj nową serię
-async function addSeriesFirebase(s){
-  await addDoc(seriesCol,s);
-}
-
-// ------------------------- APP -------------------------
+// ---------------------- APP ----------------------
 function App(){
-  const [series,setSeries] = React.useState([]);
-  const [user,setUser] = React.useState(null);
-  const [favorites,setFavorites] = React.useState([]);
-  const [view,setView] = React.useState("home");
-  const [active,setActive] = React.useState(null);
-  const [reader,setReader] = React.useState(null);
-  const [query,setQuery] = React.useState("");
-  const [selectedTags,setSelectedTags] = React.useState([]);
-  const [showSearch,setShowSearch] = React.useState(false);
+  const [series,setSeries]=React.useState([]);
+  const [user,setUser]=React.useState(null);
+  const [view,setView]=React.useState("home");
+  const [active,setActive]=React.useState(null);
+  const [reader,setReader]=React.useState(null);
+  const [query,setQuery]=React.useState("");
+  const [selectedTags,setSelectedTags]=React.useState([]);
+  const [favorites,setFavorites]=React.useState([]);
+  const [accounts,setAccounts]=React.useState({});
+  const [team,setTeam]=React.useState([]);
+  const [comments,setComments]=React.useState([]);
 
   React.useEffect(()=>{
     listenSeries(setSeries);
-    onAuthStateChanged(auth,u=>{
-      if(u) setUser({name:u.email,mail:u.email});
-      else setUser(null);
-    });
+    onAuthStateChanged(auth,u=>setUser(u?{name:u.email,mail:u.email}:null));
   },[]);
 
   const topSeries = [...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
   const filtered = series.filter(s=>{
-    const q = query.toLowerCase();
-    const text = !q || s.title.toLowerCase().includes(q);
-    const tags = !selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
+    const q=query.toLowerCase();
+    const text=!q || s.title.toLowerCase().includes(q);
+    const tags=!selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
     return text && tags;
   });
 
+  const isAdmin = user && accounts[user.mail]?.role==="admin";
+  const isMod = user && accounts[user.mail]?.role==="mod";
+
+  function toggleFav(id){ setFavorites(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]); }
+
   return e("div",null,
     e("header",null,
-      e("b",{style:{cursor:"pointer"}, onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
-      e("input",{placeholder:"Szukaj…", value:query, onFocus:()=>setShowSearch(true), onChange:e=>setQuery(e.target.value)}),
+      e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null)}},"Psychiczne tłumaczenia"),
+      e("input",{placeholder:"Szukaj…",value:query,onChange:e=>setQuery(e.target.value)}),
       e("button",{onClick:()=>setView("library")},"Biblioteka"),
       e("button",{onClick:()=>setView("profile")},"Profil"),
-      user? e("button",{onClick:()=>signOut(auth)},"Wyloguj")
+      user ? e("button",{onClick:()=>signOut(auth)},"Wyloguj")
            : e("button",{onClick:()=>setView("login")},"Login"),
-      showSearch && e("div",{className:"searchPanel"},
-        e("b",null,"Filtruj tagi:"),
-        TAGS.map(t=>e("span",{key:t,className:"tag",
-          style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
-          onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
-        },t))
-      )
+      e("div",{className:"searchPanel"},TAGS.map(t=>e("span",{key:t,className:"tag",
+        style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
+        onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
+      },t)))
     ),
     e("div",{style:{padding:12}},
-      view==="home" && e(Home,{series:filtered, topSeries, open:s=>{setActive(s);setView("series");}}),
-      view==="series" && active && e(SeriesComp,{data:active,setSeries}),
-      view==="library" && e(LibraryComp,{series,favorites,open:s=>{setActive(s);setView("series");}}),
+      view==="home" && e(Home,{series:filtered,topSeries,open:s=>{setActive(s);setView("series")},favorites,toggleFav,isAdmin,isMod,team,setTeam,comments,setComments}),
+      view==="series" && active && e(SeriesComp,{data:active,setSeries,setReader,user,isAdmin,isMod,comments,setComments}),
+      view==="library" && e(LibraryComp,{series,favorites,open:s=>{setActive(s);setView("series")}}),
       view==="add" && e(AddSeriesComp,{add:addSeriesFirebase}),
-      view==="login" && e(LoginComp,{setUser}),
-      view==="profile" && e(ProfileComp,{user})
+      view==="login" && e(LoginComp,{accounts,setAccounts,setUser}),
+      view==="profile" && e(ProfileComp,{user,accounts,setAccounts})
     ),
     reader && e(ReaderComp,{chapter:reader,onClose:()=>setReader(null)})
   );
 }
 
 // -----------------------------------------
-// COMPONENTS
 // HOME
-function Home({series, topSeries, open, favorites, toggleFav, isAdmin, team, setTeam, comments, addCommentGlobal}){
+function Home({series,topSeries,open,favorites,toggleFav,isAdmin,isMod,team,setTeam,comments,setComments}){
   const [name,setName]=React.useState("");
   const [img,setImg]=React.useState(null);
   const [comment,setComment]=React.useState("");
 
-  function upload(e){ 
-    const r=new FileReader(); 
-    r.onload=()=>setImg(r.result); 
-    r.readAsDataURL(e.target.files[0]); 
-  }
-
-  function addMember(){ 
-    if(!name||!img) return; 
-    setTeam([...team,{id:uid(),name,avatar:img}]); 
-    setName(""); setImg(null); 
-  }
-
-  function addGlobalComment(){
-    if(!comment.trim()) return;
-    addCommentGlobal("Admin",comment);
-    setComment("");
-  }
+  function upload(e){ const r=new FileReader(); r.onload=()=>setImg(r.result); r.readAsDataURL(e.target.files[0]); }
+  function addMember(){ if(!name||!img) return; setTeam([...team,{id:uid(),name,avatar:img}]); setName(""); setImg(null); }
+  function addGlobalComment(){ if(!comment.trim()) return; setComments([...comments,{id:uid(),user:"Admin",text:comment}]); setComment(""); }
 
   return e("div",null,
     e("div",{className:"card"},
       e("h3",null,"Top 5 popularnych serii"),
-      e("div",{className:"grid"},
-        topSeries.map(s=>e("div",{key:s.id,className:"card"}, 
-          s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-          e("b",{onClick:()=>open(s)},s.title),
-          e(RatingComp,{series:s}),
-          e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
-        ))
-      )
+      e("div",{className:"grid"},topSeries.map(s=>e("div",{key:s.id,className:"card"},
+        s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+        e("b",{onClick:()=>open(s)},s.title),
+        e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+      )))
     ),
     e("div",{className:"card"},
       e("h3",null,"Wszystkie serie"),
-      e("div",{className:"grid"},
-        series.map(s=>e("div",{key:s.id,className:"card"},
-          s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-          e("b",{onClick:()=>open(s)},s.title),
-          e(RatingComp,{series:s}),
-          e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
-        ))
-      )
+      e("div",{className:"grid"},series.map(s=>e("div",{key:s.id,className:"card"},
+        s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+        e("b",{onClick:()=>open(s)},s.title),
+        e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+      )))
     ),
     isAdmin && e("div",{className:"card"},
       e("h3",null,"Dodaj członka zespołu"),
@@ -199,7 +128,7 @@ function Home({series, topSeries, open, favorites, toggleFav, isAdmin, team, set
     ),
     e("div",{className:"card"},
       e("h3",null,"Globalne komentarze"),
-      e("input",{placeholder:"Komentarz…",value:comment,onChange:e=>setComment(e.target.value),onKeyDown:e=>{if(e.key==="Enter") addGlobalComment();}}),
+      e("input",{placeholder:"Komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),
       e("button",{onClick:addGlobalComment},"Dodaj"),
       comments.map(c=>e("div",{key:c.id,className:"comment"},e("b",null,c.user+": "),c.text))
     ),
@@ -215,38 +144,35 @@ function Home({series, topSeries, open, favorites, toggleFav, isAdmin, team, set
 
 // -----------------------------------------
 // SERIES COMP
-function SeriesComp({data,setSeries,user,isAdmin,isMod,setReader,addHistory,comments,setComments}){
+function SeriesComp({data,setSeries,setReader,user,isAdmin,isMod,comments,setComments}){
+  const [comment,setComment]=React.useState("");
   const [title,setTitle]=React.useState("");
   const [images,setImages]=React.useState([]);
-  const [comment,setComment]=React.useState("");
 
   function upload(e){ 
     const files=[...e.target.files]; 
     Promise.all(files.map(f=>new Promise(r=>{
-      const fr=new FileReader();
-      fr.onload=()=>r(fr.result);
-      fr.readAsDataURL(f);
+      const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f);
     }))).then(setImages); 
   }
 
-  function addChapter(){
-    if(!(isAdmin||isMod)||!title) return; 
-    const ch={id:uid(),title,images,comments:[],rating:0}; 
-    const updated={...data,chapters:[...(data.chapters||[]),ch]}; 
-    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s)); 
+  async function addChapter(){
+    if(!(isAdmin||isMod)||!title) return;
+    const ch={id:uid(),title,images,comments:[],rating:0};
+    await updateSeries(data.id,{chapters:[...(data.chapters||[]),ch]});
     setTitle(""); setImages([]);
   }
 
-  function deleteChapter(chId){
-    const updated={...data,chapters:(data.chapters||[]).filter(c=>c.id!==chId)};
-    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+  async function addCommentToChapter(ch){
+    if(!user||!comment) return;
+    const updatedChapters = data.chapters.map(c=>c.id===ch.id?{...c,comments:[...(c.comments||[]),{user:user.name,text:comment}]}:c);
+    await updateSeries(data.id,{chapters:updatedChapters});
+    setComment("");
   }
 
-  function addCommentToChapter(ch){
-    if(!user||!comment) return;
-    const updated={...data,chapters:data.chapters.map(c=>c.id===ch.id?{...c,comments:[...c.comments,{user:user.name,text:comment}]}:c)};
-    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
-    setComment("");
+  async function deleteChapter(chId){
+    const updatedChapters = (data.chapters||[]).filter(c=>c.id!==chId);
+    await updateSeries(data.id,{chapters:updatedChapters});
   }
 
   return e("div",null,
@@ -263,11 +189,11 @@ function SeriesComp({data,setSeries,user,isAdmin,isMod,setReader,addHistory,comm
       e("button",{onClick:addChapter},"Dodaj")
     ),
     (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
-      e("div",{className:"chapter",onClick:()=>{ setReader(ch); user && addHistory({user:user.mail,series:data.title,chapter:ch.title}); }},ch.title),
+      e("div",{className:"chapter",onClick:()=>setReader(ch)},ch.title),
       e("button",{onClick:()=>deleteChapter(ch.id)},"Usuń rozdział"),
-      e("div",null,"Ocena: ",[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=ch.rating?"#facc15":"#555"},onClick:()=>{const updated={...data,chapters:data.chapters.map(c=>c.id===ch.id?{...c,rating:v}:c)}; setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));}},"★"))),
       e("div",null,ch.comments.map(c=>e("div",{key:c.text,className:"comment"},e("b",null,c.user+": "),c.text))),
-      user && e("div",null,e("input",{placeholder:"Dodaj komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),e("button",{onClick:()=>addCommentToChapter(ch)},"Dodaj"))
+      user && e("div",null,e("input",{placeholder:"Dodaj komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),
+        e("button",{onClick:()=>addCommentToChapter(ch)},"Dodaj"))
     ))
   );
 }
@@ -277,12 +203,10 @@ function SeriesComp({data,setSeries,user,isAdmin,isMod,setReader,addHistory,comm
 function LibraryComp({series,favorites,open}){
   return e("div",null,
     e("h3",null,"Twoja biblioteka"),
-    e("div",{className:"grid"},
-      series.filter(s=>favorites.includes(s.id)).map(s=>e("div",{key:s.id,className:"card"},
-        s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-        e("b",{onClick:()=>open(s)},s.title)
-      ))
-    )
+    e("div",{className:"grid"},series.filter(s=>favorites.includes(s.id)).map(s=>e("div",{key:s.id,className:"card"},
+      s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+      e("b",{onClick:()=>open(s)},s.title)
+    )))
   );
 }
 
@@ -291,84 +215,32 @@ function LibraryComp({series,favorites,open}){
 function AddSeriesComp({add}){
   const [title,setTitle]=React.useState("");
   const [desc,setDesc]=React.useState("");
-  const [tags,setTags]=React.useState([]);
   const [cover,setCover]=React.useState(null);
 
-  function upload(e){
-    const r=new FileReader();
-    r.onload=()=>setCover(r.result);
-    r.readAsDataURL(e.target.files[0]);
-  }
-
-  function create(){
-    if(!title) return;
-    add({id:uid(),title,description:desc,tags,cover,chapters:[],rating:0});
-    setTitle(""); setDesc(""); setTags([]); setCover(null);
-  }
+  function upload(e){ const r=new FileReader(); r.onload=()=>setCover(r.result); r.readAsDataURL(e.target.files[0]); }
+  function create(){ if(!title) return; add({id:uid(),title,description:desc,tags:[],cover,chapters:[],rating:0}); setTitle(""); setDesc(""); setCover(null); }
 
   return e("div",{className:"card"},
     e("h3",null,"Dodaj serię"),
     e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
     e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
     e("input",{type:"file",accept:"image/*",onChange:upload}),
-    e("div",null,TAGS.map(t=>e("span",{key:t,className:"tag",style:{background:tags.includes(t)?"#9333ea":"#3b0764"},onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])},t))),
     e("button",{onClick:create},"Dodaj")
   );
 }
 
 // -----------------------------------------
 // PROFILE COMP
-function ProfileComp({user,accounts,setAccounts,history}){
+function ProfileComp({user,accounts,setAccounts}){
   if(!user) return e("div",{className:"card"},"Zaloguj się.");
-  const acc=accounts[user.mail]||{};
+  const acc = accounts[user.mail]||{};
   const [avatar,setAvatar]=React.useState(acc.avatar||null);
-
-  function upload(e){
-    const r=new FileReader();
-    r.onload=()=>{
-      const updated={...accounts,[user.mail]:{...acc,avatar:r.result,name:user.name,password:acc.password,role:acc.role}};
-      setAccounts(updated); setAvatar(r.result);
-    };
-    r.readAsDataURL(e.target.files[0]);
-  }
-
+  function upload(e){ const r=new FileReader(); r.onload=()=>{ setAccounts({...accounts,[user.mail]:{...acc,avatar:r.result}}); setAvatar(r.result); }; r.readAsDataURL(e.target.files[0]); }
   return e("div",null,
     e("div",{className:"card"},
       avatar && e("img",{src:avatar,className:"avatar"}),
       e("h3",null,user.name),
       e("input",{type:"file",accept:"image/*",onChange:upload})
-    ),
-    e(LibraryComp,{series:history.map(h=>({id:h.id,title:h.series,cover:h.cover||""})),favorites:history.map(h=>h.id),open:()=>{}})
-  );
-}
-
-// -----------------------------------------
-// ADMIN PANEL
-function AdminPanel({accounts,setAccounts,series,setSeries,team,setTeam}){
-  const [newName,setNewName]=React.useState("");
-  const [newAvatar,setNewAvatar]=React.useState(null);
-
-  function addMember(){ if(!newName||!newAvatar) return; setTeam([...team,{id:uid(),name:newName,avatar:newAvatar}]); setNewName(""); setNewAvatar(null); }
-  function uploadAvatar(e){ const r=new FileReader(); r.onload=()=>setNewAvatar(r.result); r.readAsDataURL(e.target.files[0]); }
-  function setRole(mail,role){ accounts[mail].role=role; setAccounts({...accounts}); }
-
-  return e("div",null,
-    e("h3",null,"Panel Admina"),
-    e("div",{className:"card"},
-      e("h4",null,"Użytkownicy"),
-      Object.entries(accounts).map(([mail,acc])=>e("div",{key:mail},
-        mail," — ",e("select",{value:acc.role||"user",onChange:e=>setRole(mail,e.target.value)},
-          e("option",{value:"user"},"User"),
-          e("option",{value:"mod"},"Moderator"),
-          e("option",{value:"admin"},"Admin")
-        )
-      ))
-    ),
-    e("div",{className:"card"},
-      e("h4",null,"Dodaj członka zespołu"),
-      e("input",{placeholder:"Nick",value:newName,onChange:e=>setNewName(e.target.value)}),
-      e("input",{type:"file",accept:"image/*",onChange:uploadAvatar}),
-      e("button",{onClick:addMember},"Dodaj")
     )
   );
 }
@@ -381,291 +253,34 @@ function ReaderComp({chapter,onClose}){
       e("button",{onClick:onClose},"← Zamknij"),
       e("b",null,chapter.title)
     ),
-    e("div",{className:"reader"},
-      (chapter.images||[]).map((img,i)=>e("img",{key:i,src:img}))
-    )
-  );
-}
-
-// -----------------------------------------
-// LOGIN / REGISTER
-function LoginComp({accounts,setAccounts,setUser}){
-  const [name,setName]=React.useState("");
-  const [mail,setMail]=React.useState("");
-  const [pass,setPass]=React.useState("");
-
-  function login(){
-    if(mail===ADMIN.mail && pass===ADMIN.pass){ setUser({name:ADMIN.name,mail:ADMIN.mail}); return; }
-    const acc=accounts[mail];
-    if(acc && acc.password!==pass) return alert("Złe hasło");
-    const updated={...accounts,[mail]:{name,password:pass,role:"user"}};
-    setAccounts(updated);
-    setUser({name:name||mail,mail});
-  }
-
-  return e("div",{className:"card"},
-    e("h3",null,"Login / Rejestracja"),
-    e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
-    e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
-    e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:e=>setPass(e.target.value)}),
-    e("button",{onClick:login},"Wejdź")
-  );
-}
-
-// -----------------------------------------
-// RATING COMP
-function RatingComp({series}){
-  const [rating,setRating]=React.useState(series.rating||0);
-  function rate(v){ series.rating=v; save("series",load("series",[])); setRating(v); }
-  return e("div",null,[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=rating?"#facc15":"#555"},onClick:()=>rate(v)},"★")));
-}
-
-// ------------------------- RENDER -------------------------
-ReactDOM.createRoot(document.getElementById("root")).render(e(App));
-</script>
-</body>
-</html>
-
-
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-<meta charset="UTF-8">
-<title>Psychiczne tłumaczenia — Ultimate Reader+</title>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script type="module">
-// ---------------------- FIREBASE ----------------------
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
-
-// Konfiguracja Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
-  authDomain: "psychicznetlumaczenia-34d74.firebaseapp.com",
-  projectId: "psychicznetlumaczenia-34d74",
-  storageBucket: "psychicznetlumaczenia-34d74.appspot.com",
-  messagingSenderId: "972303060927",
-  appId: "1:972303060927:web:3a7a84dd3cc8963bd25b0a",
-  measurementId: "G-W04TWH51KD"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// ---------------------- HELPERS ----------------------
-const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
-
-const uid = () => Date.now() + Math.random();
-
-// Firestore
-const seriesCol = collection(db,"series");
-async function listenSeries(callback){
-  onSnapshot(seriesCol, snap => {
-    const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    callback(data);
-  });
-}
-async function addSeriesFirebase(s){
-  await addDoc(seriesCol, s);
-}
-
-// ---------------------- APP ----------------------
-const e = React.createElement;
-
-function App(){
-  const [series, setSeries] = React.useState([]);
-  const [user, setUser] = React.useState(null);
-  const [favorites, setFavorites] = React.useState([]);
-  const [view, setView] = React.useState("home");
-  const [active, setActive] = React.useState(null);
-  const [reader, setReader] = React.useState(null);
-  const [query, setQuery] = React.useState("");
-  const [selectedTags, setSelectedTags] = React.useState([]);
-  const [showSearch, setShowSearch] = React.useState(false);
-
-  React.useEffect(() => {
-    listenSeries(setSeries);
-    onAuthStateChanged(auth, u => {
-      if(u) setUser({name:u.email, mail:u.email});
-      else setUser(null);
-    });
-  }, []);
-
-  const topSeries = [...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
-  const filtered = series.filter(s=>{
-    const q = query.toLowerCase();
-    const text = !q || s.title.toLowerCase().includes(q);
-    const tags = !selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
-    return text && tags;
-  });
-
-  return e("div",null,
-    e("header",null,
-      e("b",{style:{cursor:"pointer"}, onClick:()=>{setView("home"); setActive(null);}},"Psychiczne tłumaczenia"),
-      e("input",{placeholder:"Szukaj…", value:query, onFocus:()=>setShowSearch(true), onChange:e=>setQuery(e.target.value)}),
-      e("button",{onClick:()=>setView("library")},"Biblioteka"),
-      e("button",{onClick:()=>setView("profile")},"Profil"),
-      user ? e("button",{onClick:()=>signOut(auth)},"Wyloguj")
-           : e("button",{onClick:()=>setView("login")},"Login"),
-      showSearch && e("div",{className:"searchPanel"},
-        e("b",null,"Filtruj tagi:"),
-        TAGS.map(t=>e("span",{key:t,className:"tag",
-          style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
-          onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
-        },t))
-      )
-    ),
-    e("div",{style:{padding:12}},
-      view==="home" && e(Home,{series:filtered, topSeries, open:s=>{setActive(s); setView("series");}}),
-      view==="series" && active && e(SeriesComp,{data:active,setSeries,setReader, user}),
-      view==="library" && e(LibraryComp,{series,favorites,open:s=>{setActive(s);setView("series");}}),
-      view==="add" && e(AddSeriesComp,{add:addSeriesFirebase}),
-      view==="login" && e(LoginComp,{setUser}),
-      view==="profile" && e(ProfileComp,{user})
-    ),
-    reader && e(ReaderComp,{chapter:reader,onClose:()=>setReader(null)})
-  );
-}
-
-// -----------------------------------------
-// HOME
-function Home({series, topSeries, open}){
-  return e("div",null,
-    e("div",{className:"card"},
-      e("h3",null,"Top 5 popularnych serii"),
-      e("div",{className:"grid"},
-        topSeries.map(s=>e("div",{key:s.id,className:"card"},
-          s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-          e("b",{onClick:()=>open(s)},s.title)
-        ))
-      )
-    ),
-    e("div",{className:"card"},
-      e("h3",null,"Wszystkie serie"),
-      e("div",{className:"grid"},
-        series.map(s=>e("div",{key:s.id,className:"card"},
-          s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-          e("b",{onClick:()=>open(s)},s.title)
-        ))
-      )
-    )
-  );
-}
-
-// -----------------------------------------
-// SERIES COMP
-function SeriesComp({data,setSeries,setReader,user}){
-  const [comment,setComment] = React.useState("");
-
-  function addCommentToChapter(ch){
-    if(!user || !comment) return;
-    const updated={...data, chapters:data.chapters.map(c=>c.id===ch.id?{...c,comments:[...c.comments,{user:user.name,text:comment}]}:c)};
-    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
-    setComment("");
-  }
-
-  return e("div",null,
-    e("div",{className:"card"},
-      e("h2",null,data.title),
-      data.cover && e("img",{src:data.cover,className:"cover"}),
-      e("p",null,data.description)
-    ),
-    (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
-      e("div",{className:"chapter",onClick:()=>setReader(ch)},ch.title),
-      e("div",null,ch.comments.map(c=>e("div",{key:c.text,className:"comment"},e("b",null,c.user+": "),c.text))),
-      user && e("div",null,e("input",{placeholder:"Dodaj komentarz…",value:comment,onChange:e=>setComment(e.target.value)}), e("button",{onClick:()=>addCommentToChapter(ch)},"Dodaj"))
-    ))
-  );
-}
-
-// -----------------------------------------
-// LIBRARY COMP
-function LibraryComp({series, favorites, open}){
-  return e("div",null,
-    e("h3",null,"Twoja biblioteka"),
-    e("div",{className:"grid"},
-      series.filter(s=>favorites.includes(s.id)).map(s=>e("div",{key:s.id,className:"card"},
-        s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-        e("b",{onClick:()=>open(s)},s.title)
-      ))
-    )
-  );
-}
-
-// -----------------------------------------
-// ADD SERIES COMP
-function AddSeriesComp({add}){
-  const [title,setTitle]=React.useState("");
-  const [desc,setDesc]=React.useState("");
-  const [tags,setTags]=React.useState([]);
-  const [cover,setCover]=React.useState(null);
-
-  function upload(e){
-    const r=new FileReader();
-    r.onload=()=>setCover(r.result);
-    r.readAsDataURL(e.target.files[0]);
-  }
-
-  function create(){
-    if(!title) return;
-    add({id:uid(),title,description:desc,tags,cover,chapters:[],rating:0});
-    setTitle(""); setDesc(""); setTags([]); setCover(null);
-  }
-
-  return e("div",{className:"card"},
-    e("h3",null,"Dodaj serię"),
-    e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
-    e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
-    e("input",{type:"file",accept:"image/*",onChange:upload}),
-    e("div",null,TAGS.map(t=>e("span",{key:t,className:"tag",style:{background:tags.includes(t)?"#9333ea":"#3b0764"},onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])},t))),
-    e("button",{onClick:create},"Dodaj")
-  );
-}
-
-// -----------------------------------------
-// PROFILE COMP
-function ProfileComp({user}){
-  if(!user) return e("div",{className:"card"},"Zaloguj się.");
-  return e("div",{className:"card"},
-    e("h3",null,user.name)
-  );
-}
-
-// -----------------------------------------
-// READER COMP
-function ReaderComp({chapter,onClose}){
-  return e("div",{className:"readerOverlay"},
-    e("div",{className:"readerBar"},
-      e("button",{onClick:onClose},"← Zamknij"),
-      e("b",null,chapter.title)
-    ),
-    e("div",{className:"reader"},
-      (chapter.images||[]).map((img,i)=>e("img",{key:i,src:img}))
-    )
+    e("div",{className:"reader"},(chapter.images||[]).map((img,i)=>e("img",{key:i,src:img})))
   );
 }
 
 // -----------------------------------------
 // LOGIN
-function LoginComp({setUser}){
+function LoginComp({accounts,setAccounts,setUser}){
   const [name,setName]=React.useState("");
   const [mail,setMail]=React.useState("");
   const [pass,setPass]=React.useState("");
 
-  function login(){
-    if(!mail || !pass) return;
-    setUser({name:name||mail, mail});
+  async function login(){ 
+    if(!mail||!pass) return;
+    try{ const u = await signInWithEmailAndPassword(auth,mail,pass); setUser({name:u.user.email,mail:u.user.email}); } 
+    catch(e){ alert("Błąd logowania"); } 
+  }
+  async function register(){ 
+    if(!mail||!pass) return;
+    try{ const u = await createUserWithEmailAndPassword(auth,mail,pass); setAccounts({...accounts,[mail]:{name,name||mail,role:"user"}}); setUser({name:name||mail,mail}); } 
+    catch(e){ alert("Błąd rejestracji"); } 
   }
 
   return e("div",{className:"card"},
-    e("h3",null,"Login / Rejestracja"),
     e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
     e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
     e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:e=>setPass(e.target.value)}),
-    e("button",{onClick:login},"Wejdź")
+    e("button",{onClick:login},"Zaloguj"),
+    e("button",{onClick:register},"Zarejestruj")
   );
 }
 
@@ -674,27 +289,27 @@ ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 </script>
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
-header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-input,textarea,select{width:100%;background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin-bottom:6px;box-sizing:border-box}
+header{background:#2e1065;padding:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+input,textarea{background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin:4px 0;width:100%;box-sizing:border-box}
 button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
 button:hover{background:#7c3aed}
-.card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin-bottom:12px;box-sizing:border-box}
+.card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin:12px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
 .tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
-.cover{width:100%;height:260px;object-fit:cover;border-radius:8px;cursor:pointer}
+.cover{width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer}
 .chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
 .readerOverlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
 .readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .reader{max-width:900px;margin:auto}
 .reader img{width:100%;display:block;margin:0 auto 6px auto}
 .searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px;max-height:300px;overflow:auto}
-@media (max-width:600px){
-  .cover{height:180px;}
-  .reader{padding:8px;}
-  header{flex-direction:column;align-items:flex-start;}
-}
+.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #7c3aed}
+.smallAvatar{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #7c3aed;margin-right:6px}
+.comment{padding:4px 8px;border-left:2px solid #7c3aed;margin:4px 0}
+.teamMember{display:flex;align-items:center;margin:4px 0}
 </style>
 <body>
 <div id="root"></div>
 </body>
 </html>
+
