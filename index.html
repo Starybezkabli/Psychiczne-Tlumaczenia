@@ -20,10 +20,12 @@ button:hover{background:#7c3aed}
 .tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
 .cover{width:100%;height:260px;object-fit:cover;border-radius:8px}
 .chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
-.readerOverlay{position:fixed;inset:0;background:black;overflow:auto;z-index:100}
-.readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px}
-.reader img{width:100%;display:block;margin:auto}
-.searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px}
+.readerOverlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
+.readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px;align-items:center}
+.reader{max-width:900px;margin:auto}
+.reader img{width:100%;display:block;margin:0 auto 6px auto}
+.readerNav{display:flex;gap:8px;margin-left:auto}
+.searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px;max-height:300px;overflow:auto}
 </style>
 </head>
 <body>
@@ -43,6 +45,7 @@ const TAGS=[
 ];
 
 const TYPES=["manhwa","manga","manhua","novelka","webtoon","one shot"];
+const ADMIN_EMAIL="valerii000vall@gmail.com";
 
 // ===== STORAGE =====
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
@@ -70,23 +73,23 @@ React.useEffect(()=>save("favorites",favorites),[favorites]);
 
 // ===== FILTER =====
 const filtered=series.filter(s=>{
-const q=query.toLowerCase();
-const matchText=!q||s.title.toLowerCase().includes(q);
-const matchTags=!selectedTags.length||selectedTags.every(t=>s.tags.includes(t));
-return matchText&&matchTags;
+ const q=query.toLowerCase();
+ const matchText=!q||s.title.toLowerCase().includes(q);
+ const matchTags=!selectedTags.length||selectedTags.every(t=>s.tags.includes(t));
+ return matchText&&matchTags;
 });
 
 function toggleFav(id){
-setFavorites(favorites.includes(id)
-?favorites.filter(f=>f!==id)
-:[...favorites,id]);
+ setFavorites(favorites.includes(id)
+  ?favorites.filter(f=>f!==id)
+  :[...favorites,id]);
 }
 
 return e("div",null,
 
-// ===== HEADER =====
+ // HEADER
  e("header",null,
-  e("div",{style:{display:"flex",gap:8}},
+  e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
 
    e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
 
@@ -122,7 +125,7 @@ return e("div",null,
   )
  ),
 
-// ===== VIEWS =====
+ // VIEWS
  e("div",{style:{padding:12}},
 
   view==="home"&&e(Home,{series:filtered,open:s=>{setActive(s);setView("series");},favorites,toggleFav}),
@@ -134,7 +137,7 @@ return e("div",null,
   view==="login"&&e(Login,{setUser})
  ),
 
-// ===== READER =====
+ // READER
  reader&&e(Reader,{chapter:reader,onClose:()=>setReader(null)})
 );
 }
@@ -152,38 +155,40 @@ series.map(s=>e("div",{key:s.id,className:"card"},
 )));
 }
 
-// ===== SERIES PAGE =====
+// ===== SERIES =====
 function Series({data,setSeries,user,setReader}){
 const [ctitle,setCtitle]=React.useState("");
 const [cimages,setCimages]=React.useState([]);
 const [comment,setComment]=React.useState("");
 
+const isAdmin=user?.mail===ADMIN_EMAIL;
+
 function upload(e){
-const files=[...e.target.files];
-Promise.all(files.map(f=>new Promise(res=>{
-const r=new FileReader();
-r.onload=()=>res(r.result);
-r.readAsDataURL(f);
-}))).then(setCimages);
+ const files=[...e.target.files];
+ Promise.all(files.map(f=>new Promise(res=>{
+  const r=new FileReader();
+  r.onload=()=>res(r.result);
+  r.readAsDataURL(f);
+ }))).then(setCimages);
 }
 
 function addChapter(){
-if(!user?.admin||!ctitle)return;
-const ch={id:uid(),title:ctitle,images:cimages,comments:[]};
-const updated={...data,chapters:[...(data.chapters||[]),ch]};
-setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
-setCtitle("");setCimages([]);
+ if(!isAdmin||!ctitle)return;
+ const ch={id:uid(),title:ctitle,images:cimages,comments:[]};
+ const updated={...data,chapters:[...(data.chapters||[]),ch]};
+ setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+ setCtitle("");setCimages([]);
 }
 
 function addComment(id){
-if(!user||!comment)return;
-const updated={
-...data,
-chapters:data.chapters.map(c=>
-c.id===id?{...c,comments:[...c.comments,{user:user.name,text:comment}]}:c
-)};
-setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
-setComment("");
+ if(!user||!comment)return;
+ const updated={
+  ...data,
+  chapters:data.chapters.map(c=>
+   c.id===id?{...c,comments:[...c.comments,{user:user.name,text:comment}]}:c
+  )};
+ setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+ setComment("");
 }
 
 return e("div",null,
@@ -193,15 +198,15 @@ return e("div",null,
   e("p",null,data.description)
  ),
 
- user?.admin&&e("div",{className:"card"},
+ isAdmin&&e("div",{className:"card"},
   e("h3",null,"Dodaj rozdział"),
   e("input",{placeholder:"Tytuł",value:ctitle,onChange:e=>setCtitle(e.target.value)}),
   e("input",{type:"file",multiple:true,accept:"image/*",onChange:upload}),
   e("button",{onClick:addChapter},"Dodaj")
  ),
 
- (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
-  e("div",{className:"chapter",onClick:()=>setReader(ch)},ch.title),
+ (data.chapters||[]).map((ch,i)=>e("div",{key:ch.id,className:"card"},
+  e("div",{className:"chapter",onClick:()=>setReader({...ch,index:i,all:data.chapters})},ch.title),
 
   e("h4",null,"Komentarze"),
   ch.comments.map((c,i)=>e("div",{key:i},e("b",null,c.user+": "),c.text)),
@@ -224,12 +229,33 @@ return e("div",{className:"grid"},
  )));
 }
 
-// ===== READER (Mangago/Batoto style) =====
+// ===== READER (Batoto-like navigation) =====
 function Reader({chapter,onClose}){
+const {all,index}=chapter;
+
+function nav(dir){
+ const next=all[index+dir];
+ if(next) window.dispatchEvent(new CustomEvent("openChapter",{detail:{...next,index:index+dir,all}}));
+}
+
+React.useEffect(()=>{
+ const h=e=>onClose();
+ window.addEventListener("keydown",ev=>{
+  if(ev.key==="Escape")onClose();
+  if(ev.key==="ArrowRight")nav(1);
+  if(ev.key==="ArrowLeft")nav(-1);
+ });
+ return ()=>window.removeEventListener("keydown",h);
+},[]);
+
 return e("div",{className:"readerOverlay"},
  e("div",{className:"readerBar"},
   e("button",{onClick:onClose},"← Zamknij"),
-  e("b",null,chapter.title)
+  e("b",null,chapter.title),
+  e("div",{className:"readerNav"},
+   e("button",{onClick:()=>nav(-1)},"← Poprzedni"),
+   e("button",{onClick:()=>nav(1)},"Następny →")
+  )
  ),
  e("div",{className:"reader"},
   chapter.images.map((img,i)=>e("img",{key:i,src:img,loading:"lazy"}))
@@ -237,18 +263,18 @@ return e("div",{className:"readerOverlay"},
 );
 }
 
-// ===== LOGIN / REGISTER =====
+// ===== LOGIN =====
 function Login({setUser}){
 const [name,setName]=React.useState("");
 const [mail,setMail]=React.useState("");
 
 function login(){
-if(!name||!mail)return;
-setUser({name,mail,admin:true});
+ if(!name||!mail)return;
+ setUser({name,mail});
 }
 
 return e("div",{className:"card"},
- e("h3",null,"Rejestracja / Login"),
+ e("h3",null,"Login / Rejestracja"),
  e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
  e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
  e("button",{onClick:login},"Wejdź")
