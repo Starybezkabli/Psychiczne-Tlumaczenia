@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Psychiczne tłumaczenia — Ultimate Reader</title>
+<title>Psychiczne tłumaczenia — Ultimate Reader+</title>
 
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,7 +11,7 @@
 body{margin:0;font-family:system-ui;background:#0b0016;color:#e9d5ff}
 header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10}
 input,textarea,select{width:100%;background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin-bottom:6px}
-button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer}
+button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:2px}
 button:hover{background:#7c3aed}
 .card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin-bottom:12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
@@ -20,6 +20,7 @@ button:hover{background:#7c3aed}
 .readerOverlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
 .reader img{width:100%;display:block;margin:auto}
 .avatar{width:70px;height:70px;border-radius:50%;object-fit:cover}
+.stat{background:#14002a;padding:6px;border-radius:6px;margin:4px 0}
 </style>
 </head>
 
@@ -29,7 +30,7 @@ button:hover{background:#7c3aed}
 <script>
 const e=React.createElement;
 
-// ================= TAGS — NIE USUWANE =================
+// ===== TAGS — NIE USUWANE =====
 const TAGS=[ "yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
 "wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici",
 "szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory",
@@ -37,25 +38,28 @@ const TAGS=[ "yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwa
 "duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki",
 "fetysze","zemsta","klątwy"];
 
-const ADMIN="admin@site.com";
+// ===== ADMIN =====
+const ADMIN_MAIL="valerii000val@gmail.com";
+const ADMIN_PASS="pika6969";
 
+// ===== STORAGE =====
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const uid=()=>Date.now()+Math.random();
 
-// ================= ROUTER =================
+// ===== ROUTER =====
 function useRoute(){
-const [route,setRoute]=React.useState(location.hash.slice(1)||"/");
+const [r,setR]=React.useState(location.hash.slice(1)||"/");
 React.useEffect(()=>{
-const h=()=>setRoute(location.hash.slice(1)||"/");
-window.addEventListener("hashchange",h);
-return()=>window.removeEventListener("hashchange",h);
+const h=()=>setR(location.hash.slice(1)||"/");
+addEventListener("hashchange",h);
+return()=>removeEventListener("hashchange",h);
 },[]);
-return route;
+return r;
 }
-const nav=(p)=>location.hash=p;
+const nav=p=>location.hash=p;
 
-// ================= APP =================
+// ===== APP =====
 function App(){
 
 const route=useRoute();
@@ -72,31 +76,55 @@ React.useEffect(()=>save("user",user),[user]);
 React.useEffect(()=>save("fav",favorites),[favorites]);
 React.useEffect(()=>save("hist",history),[history]);
 
+// init admin
+React.useEffect(()=>{
+if(!accounts[ADMIN_MAIL]){
+accounts[ADMIN_MAIL]={
+name:"Admin",
+password:ADMIN_PASS,
+role:"admin",
+avatar:null,
+stats:{chapters:0,reads:0}
+};
+setAccounts({...accounts});
+}
+},[]);
+
 function addHistory(s,c){
 if(!user)return;
-setHist(h=>[{id:uid(),user:user.mail,series:s,chapter:c},...h.slice(0,50)]);
+setHist(h=>[{id:uid(),user:user.mail,series:s,chapter:c},...h.slice(0,100)]);
+accounts[user.mail].stats.reads++;
+setAccounts({...accounts});
 }
+
+const isAdmin=user?.mail===ADMIN_MAIL;
+const isMod=user && (accounts[user.mail]?.role==="mod"||isAdmin);
 
 // ===== HEADER =====
 const header=e("header",null,
 e("b",{style:{cursor:"pointer"},onClick:()=>nav("/")},"Psychiczne tłumaczenia"),
-" ",
 e("button",{onClick:()=>nav("/library")},"Biblioteka"),
-" ",
 e("button",{onClick:()=>nav("/profile")},"Profil"),
-" ",
-user?.mail===ADMIN && e("button",{onClick:()=>nav("/admin")},"Admin"),
-" ",
-user?e("button",{onClick:()=>setUser(null)},"Wyloguj"):e("button",{onClick:()=>nav("/login")},"Login")
+e("button",{onClick:()=>nav("/add")},"Dodaj tytuł"),
+e("button",{onClick:()=>nav("/register")},"Rejestracja"),
+isAdmin&&e("button",{onClick:()=>nav("/admin")},"Panel Admin"),
+user
+?e("button",{onClick:()=>setUser(null)},"Wyloguj")
+:e("button",{onClick:()=>nav("/login")},"Login")
 );
 
 // ===== ROUTES =====
 let page;
 
 if(route==="/") page=e(Home,{series,favorites,setFav});
+else if(route==="/add") page=e(AddSeries,{series,setSeries,isMod});
 else if(route.startsWith("/series/")){
 const id=route.split("/")[2];
-page=e(Series,{data:series.find(s=>s.id==id),series,setSeries,user,addHistory});
+page=e(Series,{
+data:series.find(s=>s.id==id),
+series,setSeries,
+user,isMod,addHistory
+});
 }
 else if(route.startsWith("/read/")){
 const [_,__,sid,cid]=route.split("/");
@@ -105,98 +133,32 @@ const ch=s?.chapters.find(c=>c.id==cid);
 page=e(Reader,{chapter:ch});
 }
 else if(route==="/library") page=e(Library,{series,favorites});
-else if(route==="/admin") page=e(Admin,{series,setSeries,user});
 else if(route==="/profile") page=e(Profile,{user,accounts,setAccounts,history});
+else if(route==="/admin") page=e(Admin,{accounts,setAccounts,isAdmin});
 else if(route==="/login") page=e(Login,{accounts,setAccounts,setUser});
+else if(route==="/register") page=e(Register,{accounts,setAccounts});
 else page=e("div",null,"404");
 
 return e("div",null,header,e("div",{style:{padding:12}},page));
 }
 
-// ================= HOME =================
+// ===== HOME =====
 function Home({series,favorites,setFav}){
-const [q,setQ]=React.useState("");
-const filtered=series.filter(s=>s.title.toLowerCase().includes(q.toLowerCase()));
-
-return e("div",null,
-e("input",{placeholder:"Szukaj...",value:q,onChange:x=>setQ(x.target.value)}),
-
-e("div",{className:"grid"},
-filtered.map(s=>e("div",{key:s.id,className:"card"},
+return e("div",{className:"grid"},
+series.map(s=>e("div",{key:s.id,className:"card"},
 s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>nav("/series/"+s.id)}),
 e("b",{onClick:()=>nav("/series/"+s.id)},s.title),
-e("button",{onClick:()=>setFav(favorites.includes(s.id)?favorites.filter(f=>f!==s.id):[...favorites,s.id])},
-favorites.includes(s.id)?"★":"☆"),
-e("div",null,s.tags.map(t=>e("span",{key:t,className:"tag"},t)))
-)))
-);
+e("button",{onClick:()=>setFav(
+favorites.includes(s.id)
+?favorites.filter(f=>f!==s.id)
+:[...favorites,s.id])},
+favorites.includes(s.id)?"★":"☆")
+)));
 }
 
-// ================= SERIES =================
-function Series({data,series,setSeries,user,addHistory}){
-if(!data) return e("div",null,"Brak");
-
-const isAdmin=user?.mail===ADMIN;
-const [title,setTitle]=React.useState("");
-const [imgs,setImgs]=React.useState([]);
-const [comment,setComment]=React.useState("");
-
-function upload(e){
-const files=[...e.target.files];
-Promise.all(files.map(f=>new Promise(r=>{
-const fr=new FileReader();
-fr.onload=()=>r(fr.result);
-fr.readAsDataURL(f);
-}))).then(setImgs);
-}
-
-function addChap(){
-if(!isAdmin)return;
-const ch={id:uid(),title,images:imgs,comments:[],rating:0};
-data.chapters.push(ch);
-setSeries([...series]);
-}
-
-function delChap(id){
-data.chapters=data.chapters.filter(c=>c.id!==id);
-setSeries([...series]);
-}
-
-return e("div",null,
-
-e("div",{className:"card"},
-e("h2",null,data.title),
-data.cover&&e("img",{src:data.cover,className:"cover"}),
-e("p",null,data.description)
-),
-
-isAdmin&&e("div",{className:"card"},
-e("h3",null,"Dodaj rozdział"),
-e("input",{value:title,onChange:x=>setTitle(x.target.value)}),
-e("input",{type:"file",multiple:true,onChange:upload}),
-e("button",{onClick:addChap},"Dodaj")
-),
-
-data.chapters.map(ch=>e("div",{key:ch.id,className:"card"},
-e("b",{onClick:()=>{addHistory(data.title,ch.title);nav(`/read/${data.id}/${ch.id}`)}},ch.title),
-isAdmin&&e("button",{onClick:()=>delChap(ch.id)},"Usuń"),
-e("h4",null,"Komentarze"),
-ch.comments.map((c,i)=>e("div",{key:i},c.user+": "+c.text)),
-user&&e("div",null,
-e("input",{value:comment,onChange:x=>setComment(x.target.value)}),
-e("button",{onClick:()=>{
-ch.comments.push({user:user.name,text:comment});
-setSeries([...series]);
-setComment("");
-}},"Dodaj")
-)
-))
-);
-}
-
-// ================= ADMIN =================
-function Admin({series,setSeries,user}){
-if(user?.mail!==ADMIN)return e("div",null,"Brak dostępu");
+// ===== ADD SERIES =====
+function AddSeries({series,setSeries,isMod}){
+if(!isMod) return e("div",null,"Brak uprawnień");
 
 const [title,setTitle]=React.useState("");
 const [desc,setDesc]=React.useState("");
@@ -212,15 +174,10 @@ r.readAsDataURL(e.target.files[0]);
 function add(){
 series.push({id:uid(),title,description:desc,tags,cover,chapters:[]});
 setSeries([...series]);
+nav("/");
 }
 
-function del(id){
-setSeries(series.filter(s=>s.id!==id));
-}
-
-return e("div",null,
-
-e("div",{className:"card"},
+return e("div",{className:"card"},
 e("h3",null,"Nowy tytuł"),
 e("input",{value:title,onChange:x=>setTitle(x.target.value)}),
 e("textarea",{value:desc,onChange:x=>setDesc(x.target.value)}),
@@ -229,40 +186,108 @@ TAGS.map(t=>e("span",{className:"tag",
 style:{background:tags.includes(t)?"#9333ea":""},
 onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])},t)),
 e("button",{onClick:add},"Dodaj")
+);
+}
+
+// ===== SERIES =====
+function Series({data,series,setSeries,user,isMod,addHistory}){
+if(!data) return e("div",null,"Brak");
+
+const [title,setTitle]=React.useState("");
+const [imgs,setImgs]=React.useState([]);
+const [comment,setComment]=React.useState("");
+
+function upload(e){
+const files=[...e.target.files];
+Promise.all(files.map(f=>new Promise(r=>{
+const fr=new FileReader();
+fr.onload=()=>r(fr.result);
+fr.readAsDataURL(f);
+}))).then(setImgs);
+}
+
+function addChap(){
+if(!isMod)return;
+data.chapters.push({id:uid(),title,images:imgs,comments:[]});
+setSeries([...series]);
+}
+
+function delChap(id){
+data.chapters=data.chapters.filter(c=>c.id!==id);
+setSeries([...series]);
+}
+
+function delSeries(){
+setSeries(series.filter(s=>s.id!==data.id));
+nav("/");
+}
+
+return e("div",null,
+
+e("div",{className:"card"},
+e("h2",null,data.title),
+data.cover&&e("img",{src:data.cover,className:"cover"}),
+e("p",null,data.description),
+isMod&&e("button",{onClick:delSeries},"Usuń serię")
 ),
 
-e("h3",null,"Usuń serie"),
-series.map(s=>e("div",{key:s.id},
-s.title," ",
-e("button",{onClick:()=>del(s.id)},"Usuń")))
+isMod&&e("div",{className:"card"},
+e("h3",null,"Dodaj rozdział"),
+e("input",{value:title,onChange:x=>setTitle(x.target.value)}),
+e("input",{type:"file",multiple:true,onChange:upload}),
+e("button",{onClick:addChap},"Dodaj")
+),
+
+data.chapters.map(ch=>e("div",{key:ch.id,className:"card"},
+e("b",{onClick:()=>{
+addHistory(data.title,ch.title);
+nav(`/read/${data.id}/${ch.id}`);
+}},ch.title),
+isMod&&e("button",{onClick:()=>delChap(ch.id)},"Usuń"),
+e("h4",null,"Komentarze"),
+ch.comments.map((c,i)=>e("div",{key:i},c.user+": "+c.text)),
+user&&e("div",null,
+e("input",{value:comment,onChange:x=>setComment(x.target.value)}),
+e("button",{onClick:()=>{
+ch.comments.push({user:user.name,text:comment});
+setSeries([...series]);
+setComment("");
+}},"Dodaj")
+)
+))
 );
 }
 
-// ================= LIBRARY =================
-function Library({series,favorites}){
-return e("div",{className:"grid"},
-series.filter(s=>favorites.includes(s.id))
-.map(s=>e("div",{className:"card"},
-s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>nav("/series/"+s.id)}),
-e("b",{onClick:()=>nav("/series/"+s.id)},s.title)))
+// ===== READER — BATOTO STYLE =====
+function Reader({chapter}){
+if(!chapter) return e("div",null,"Brak");
+return e("div",{className:"readerOverlay"},
+e("div",{className:"reader"},
+chapter.images.map((img,i)=>e("img",{key:i,src:img}))
+),
+e("button",{onClick:()=>nav("/")}, "← Wyjdź")
 );
 }
 
-// ================= PROFILE =================
+// ===== PROFILE + STATYSTYKI =====
 function Profile({user,accounts,setAccounts,history}){
-if(!user)return e("div",null,"Zaloguj się");
+if(!user) return e("div",null,"Zaloguj się");
 
 const acc=accounts[user.mail];
+const [name,setName]=React.useState(acc.name);
+const [pass,setPass]=React.useState(acc.password);
 const [avatar,setAvatar]=React.useState(acc.avatar);
 
 function upload(e){
 const r=new FileReader();
-r.onload=()=>{
-accounts[user.mail].avatar=r.result;
-setAccounts({...accounts});
-setAvatar(r.result);
-};
+r.onload=()=>setAvatar(r.result);
 r.readAsDataURL(e.target.files[0]);
+}
+
+function saveProfile(){
+accounts[user.mail]={...acc,name,password:pass,avatar};
+setAccounts({...accounts});
+alert("Zapisano");
 }
 
 return e("div",null,
@@ -270,7 +295,15 @@ return e("div",null,
 e("div",{className:"card"},
 avatar&&e("img",{src:avatar,className:"avatar"}),
 e("input",{type:"file",onChange:upload}),
-e("h3",null,user.name)
+e("input",{value:name,onChange:x=>setName(x.target.value)}),
+e("input",{value:pass,onChange:x=>setPass(x.target.value)}),
+e("button",{onClick:saveProfile},"Zapisz")
+),
+
+e("div",{className:"card"},
+e("h3",null,"Statystyki"),
+e("div",{className:"stat"},"Odczyty: "+(acc.stats?.reads||0)),
+e("div",{className:"stat"},"Rozdziały: "+(acc.stats?.chapters||0))
 ),
 
 e("div",{className:"card"},
@@ -281,36 +314,71 @@ history.filter(h=>h.user===user.mail)
 );
 }
 
-// ================= LOGIN =================
+// ===== LOGIN =====
 function Login({accounts,setAccounts,setUser}){
-const [name,setName]=React.useState("");
 const [mail,setMail]=React.useState("");
 const [pass,setPass]=React.useState("");
 
 function go(){
-if(!accounts[mail]) accounts[mail]={name,password:pass,avatar:null};
-if(accounts[mail].password!==pass) return alert("Złe hasło");
-setAccounts({...accounts});
-setUser({name,mail});
+const acc=accounts[mail];
+if(!acc||acc.password!==pass) return alert("Błąd");
+setUser({mail,name:acc.name});
 nav("/");
 }
 
 return e("div",{className:"card"},
-e("h3",null,"Login / Rejestracja"),
-e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),
-e("input",{placeholder:"Email",value:mail,onChange:x=>setMail(x.target.value)}),
-e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:x=>setPass(x.target.value)}),
-e("button",{onClick:go},"Wejdź")
+e("h3",null,"Login"),
+e("input",{value:mail,onChange:x=>setMail(x.target.value)}),
+e("input",{type:"password",value:pass,onChange:x=>setPass(x.target.value)}),
+e("button",{onClick:go},"Zaloguj")
 );
 }
 
-// ================= READER =================
-function Reader({chapter}){
-if(!chapter)return e("div",null,"Brak");
-return e("div",{className:"readerOverlay",onClick:()=>nav("/")},
-e("div",{className:"reader"},
-chapter.images.map((img,i)=>e("img",{key:i,src:img}))
-));
+// ===== REGISTER =====
+function Register({accounts,setAccounts}){
+const [mail,setMail]=React.useState("");
+const [name,setName]=React.useState("");
+const [pass,setPass]=React.useState("");
+
+function reg(){
+if(accounts[mail]) return alert("Istnieje");
+accounts[mail]={name,password:pass,role:"user",avatar:null,stats:{reads:0,chapters:0}};
+setAccounts({...accounts});
+alert("Zarejestrowano");
+nav("/login");
+}
+
+return e("div",{className:"card"},
+e("h3",null,"Rejestracja"),
+e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),
+e("input",{placeholder:"Email",value:mail,onChange:x=>setMail(x.target.value)}),
+e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:x=>setPass(x.target.value)}),
+e("button",{onClick:reg},"Zarejestruj")
+);
+}
+
+// ===== ADMIN PANEL — ROLE =====
+function Admin({accounts,setAccounts,isAdmin}){
+if(!isAdmin) return e("div",null,"Brak dostępu");
+
+function setRole(mail,role){
+accounts[mail].role=role;
+setAccounts({...accounts});
+}
+
+return e("div",{className:"card"},
+e("h3",null,"Role użytkowników"),
+Object.entries(accounts).map(([mail,a])=>
+e("div",{key:mail},
+mail," — ",
+e("select",{value:a.role||"user",
+onChange:x=>setRole(mail,x.target.value)},
+e("option",{value:"user"},"User"),
+e("option",{value:"mod"},"Moderator"),
+e("option",{value:"admin"},"Admin")
+)
+))
+);
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
