@@ -2,330 +2,204 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Psychiczne tłumaczenia</title>
 
-<!-- React CDN — GitHub safe -->
+<!-- React production -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <style>
-body{
-margin:0;
-font-family:system-ui,sans-serif;
-background:linear-gradient(#120022,#000);
-color:#e9d5ff;
-}
-
-header{
-background:#2e1065;
-padding:12px;
-position:sticky;
-top:0;
-z-index:10;
-}
-
-.subbar{
-background:#1a0033;
-padding:8px;
-border-top:1px solid #5b21b6;
-}
-
-input,textarea,select{
-width:100%;
-background:#1a0033;
-border:1px solid #5b21b6;
-color:white;
-padding:8px;
-border-radius:6px;
-margin-bottom:6px;
-}
-
-button{
-background:#6d28d9;
-border:none;
-padding:8px 12px;
-border-radius:6px;
-color:white;
-cursor:pointer;
-margin:2px;
-}
+body { margin:0; font-family:system-ui,sans-serif; background:linear-gradient(#120022,#000); color:#e9d5ff; }
+header{background:#2e1065; padding:12px; position:sticky; top:0; z-index:10;}
+.subbar{background:#1a0033; padding:8px; border-top:1px solid #5b21b6;}
+input,textarea,select{width:100%; background:#1a0033; border:1px solid #5b21b6; color:white; padding:8px; border-radius:6px;}
+button{background:#6d28d9; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer;}
 button:hover{background:#7c3aed;}
-
-.card{
-background:#1a0033;
-border:1px solid #5b21b6;
-padding:12px;
-border-radius:10px;
-margin-bottom:12px;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-gap:12px;
-}
-
-.tag{
-display:inline-block;
-background:#3b0764;
-padding:4px 8px;
-border-radius:999px;
-margin:2px;
-font-size:12px;
-cursor:pointer;
-}
-
-.reader img{
-width:100%;
-display:block;
-margin-bottom:6px;
-border-radius:8px;
-}
+.card{background:#1a0033; border:1px solid #5b21b6; padding:12px; border-radius:10px; margin-bottom:12px;}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;}
+.tag{display:inline-block; background:#3b0764; padding:4px 8px; border-radius:999px; margin:2px; font-size:12px; cursor:pointer;}
+.reader img{width:100%; display:block; margin-bottom:6px; border-radius:8px;}
 </style>
 </head>
-
 <body>
 <div id="root"></div>
 
-<script type="text/babel">
+<script>
+const e=React.createElement;
 
-/* ========= CONSTANTS ========= */
+// ===== CONFIG =====
 const TAGS=[
-"yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demon y","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"
+"yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
+"wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici",
+"szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory",
+"magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia",
+"duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze",
+"zemsta","klątwy"
 ];
 
 const TYPES=["manhwa","manga","manhua","novelka","webtoon","one shot"];
 
-const uid=()=>Date.now()+Math.random();
+// ===== HELPERS =====
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const uid=()=>Date.now()+Math.floor(Math.random()*1000);
 
-/* ========= APP ========= */
+// ===== APP =====
 function App(){
+  const [series,setSeries]=React.useState(load("series",[]));
+  const [user,setUser]=React.useState(load("user",null));
+  const [view,setView]=React.useState("home");
+  const [active,setActive]=React.useState(null);
+  const [query,setQuery]=React.useState("");
+  const [menu,setMenu]=React.useState(false);
 
-const [series,setSeries]=React.useState(load("series",[]));
-const [user,setUser]=React.useState(load("user",null));
-const [view,setView]=React.useState("home");
-const [active,setActive]=React.useState(null);
-const [query,setQuery]=React.useState("");
-const [menu,setMenu]=React.useState(false);
+  React.useEffect(()=>save("series",series),[series]);
+  React.useEffect(()=>save("user",user),[user]);
 
-React.useEffect(()=>save("series",series),[series]);
-React.useEffect(()=>save("user",user),[user]);
+  const filtered=series.filter(s=>
+    s.title.toLowerCase().includes(query.toLowerCase())||
+    s.tags.some(t=>t.toLowerCase().includes(query.toLowerCase()))
+  );
 
-const filtered=series.filter(s=>
-(s.title||"").toLowerCase().includes(query.toLowerCase())||
-(s.tags||[]).some(t=>t.toLowerCase().includes(query.toLowerCase()))
-);
-
-return(
-<div>
-
-<header>
-<div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-<b style={{fontSize:20,cursor:"pointer"}} onClick={()=>setView("home")}>Psychiczne tłumaczenia</b>
-
-<input placeholder="Szukaj…" value={query} onChange={e=>setQuery(e.target.value)}/>
-
-<button onClick={()=>setMenu(!menu)}>☰</button>
-
-{user
-? <button onClick={()=>setUser(null)}>Wyloguj ({user})</button>
-: <button onClick={()=>setView("login")}>Login</button>}
-
-<button onClick={()=>setView("admin")}>Panel</button>
-</div>
-
-<div className="subbar">
-{TYPES.map(t=><span key={t} className="tag">{t}</span>)}
-</div>
-
-{menu&&(
-<div className="card">
-{series.map(s=>
-<div key={s.id} style={{cursor:"pointer"}}
-onClick={()=>{setActive(s);setView("series");setMenu(false);}}>
-{s.title}
-</div>
-)}
-</div>
-)}
-
-</header>
-
-<div style={{padding:12}}>
-
-{view==="home"&&<Home series={filtered} open={s=>{setActive(s);setView("series");}}/>}
-
-{view==="series"&&active&&
-<Series data={active} user={user}
-update={u=>{
-setSeries(series.map(s=>s.id===u.id?u:s));
-setActive(u);
-}}/>}
-
-{view==="admin"&&<Admin add={s=>setSeries([...series,s])}/>}
-
-{view==="login"&&<Login setUser={setUser}/>}
-
-</div>
-</div>
-);
+  return e("div",null,
+    e("header",null,
+      e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+        e("b",{style:{fontSize:20,cursor:"pointer"},onClick:()=>{setView("home"); setActive(null);}},"Psychiczne tłumaczenia"),
+        e("input",{placeholder:"Szukaj tytułu/tagu…",value:query,onChange:e=>setQuery(e.target.value)}),
+        e("button",{onClick:()=>setMenu(!menu)},"☰"),
+        user?e("button",{onClick:()=>setUser(null)},"Wyloguj ("+user+")")
+            :e("button",{onClick:()=>setView("login")},"Login"),
+        e("button",{onClick:()=>setView("admin")},"Panel")
+      ),
+      e("div",{className:"subbar"},
+        TYPES.map(t=>e("span",{key:t,className:"tag"},t))
+      ),
+      menu && e("div",{className:"card"},
+        series.map(s=>e("div",{key:s.id,style:{cursor:"pointer"},
+          onClick:()=>{setActive(s); setView("series"); setMenu(false);}},s.title))
+      )
+    ),
+    e("div",{style:{padding:12}},
+      view==="home" && e(Home,{series:filtered,open:s=>{setActive(s);setView("series");}}),
+      view==="series" && active && e(Series,{data:active,user,user,setSeries}),
+      view==="admin" && e(Admin,{add:s=>setSeries([...series,s])}),
+      view==="login" && e(Login,{setUser})
+    )
+  );
 }
 
-/* ========= HOME ========= */
+// ===== HOME =====
 function Home({series,open}){
-return(
-<div className="grid">
-{series.map(s=>
-<div key={s.id} className="card" onClick={()=>open(s)}>
-<b>{s.title}</b>
-<div>{(s.tags||[]).map(t=><span key={t} className="tag">{t}</span>)}</div>
-</div>
-)}
-</div>
-);
+  return e("div",{className:"grid"},
+    series.map(s=>e("div",{key:s.id,className:"card",onClick:()=>open(s)},
+      e("b",null,s.title),
+      e("div",null,s.tags.map(t=>e("span",{key:t,className:"tag"},t)))
+    ))
+  );
 }
 
-/* ========= SERIES ========= */
-function Series({data,update,user}){
+// ===== SERIES PAGE =====
+function Series({data,user,setSeries}){
+  const [ctitle,setCtitle]=React.useState("");
+  const [cimages,setCimages]=React.useState([]);
+  const [comment,setComment]=React.useState("");
 
-const [ctitle,setCtitle]=React.useState("");
-const [cimages,setCimages]=React.useState([]);
-const [comment,setComment]=React.useState("");
+  function upload(e){
+    const files=[...e.target.files];
+    Promise.all(files.map(f=>new Promise(res=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result);
+      r.readAsDataURL(f);
+    }))).then(imgs=>setCimages(imgs));
+  }
 
-function upload(e){
-const files=[...e.target.files];
-Promise.all(files.map(f=>new Promise(res=>{
-const r=new FileReader();
-r.onload=()=>res(r.result);
-r.readAsDataURL(f);
-}))).then(imgs=>setCimages(imgs));
+  function addChapter(){
+    if(!ctitle)return;
+    const newChap={id:uid(),title:ctitle,images:cimages,comments:[],rating:0};
+    const updated={...data,chapters:[...(data.chapters||[]),newChap]};
+    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+    setCtitle(""); setCimages([]);
+  }
+
+  function addComment(id){
+    if(!user||!comment)return;
+    const updated={...data,
+      chapters:(data.chapters||[]).map(c=>c.id===id?{...c,comments:[...(c.comments||[]),{user,text:comment}]}:c)
+    };
+    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+    setComment("");
+  }
+
+  function rate(id){
+    const updated={...data,
+      chapters:(data.chapters||[]).map(c=>c.id===id?{...c,rating:c.rating+1}:c)
+    };
+    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+  }
+
+  return e("div",null,
+    e("div",{className:"card"},
+      e("h2",null,data.title),
+      e("p",null,data.description)
+    ),
+    e("div",{className:"card"},
+      e("h3",null,"Dodaj rozdział"),
+      e("input",{placeholder:"Tytuł",value:ctitle,onChange:e=>setCtitle(e.target.value)}),
+      e("input",{type:"file",multiple:true,accept:"image/*",onChange:upload}),
+      e("button",{onClick:addChapter},"Dodaj rozdział")
+    ),
+    (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
+      e("b",null,ch.title),
+      e("div",{className:"reader"},
+        ch.images.map((img,i)=>e("img",{key:i,src:img}))
+      ),
+      e("button",{onClick:()=>rate(ch.id)},"👍 "+ch.rating),
+      e("h4",null,"Komentarze"),
+      (ch.comments||[]).map((c,i)=>e("div",{key:i},e("b",null,c.user+": "),c.text)),
+      e("input",{placeholder:"Komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),
+      e("button",{onClick:()=>addComment(ch.id)},"Dodaj")
+    ))
+  );
 }
 
-function addChapter(){
-if(!ctitle)return;
-update({
-...data,
-chapters:[...(data.chapters||[]),
-{id:uid(),title:ctitle,images:cimages,comments:[],rating:0}]
-});
-setCtitle("");
-setCimages([]);
-}
-
-function addComment(id){
-if(!user||!comment)return;
-update({
-...data,
-chapters:data.chapters.map(c=>
-c.id===id
-?{...c,comments:[...c.comments,{user,text:comment}]}
-:c
-)
-});
-setComment("");
-}
-
-function rate(id){
-update({
-...data,
-chapters:data.chapters.map(c=>
-c.id===id?{...c,rating:c.rating+1}:c
-)
-});
-}
-
-return(
-<div>
-
-<div className="card">
-<h2>{data.title}</h2>
-<p>{data.description}</p>
-</div>
-
-<div className="card">
-<h3>Dodaj rozdział</h3>
-<input placeholder="Tytuł" value={ctitle} onChange={e=>setCtitle(e.target.value)}/>
-<input type="file" multiple accept="image/*" onChange={upload}/>
-<button onClick={addChapter}>Dodaj</button>
-</div>
-
-{(data.chapters||[]).map(ch=>
-<div key={ch.id} className="card">
-<b>{ch.title}</b>
-<div className="reader">
-{ch.images.map((img,i)=><img key={i} src={img}/>) }
-</div>
-<button onClick={()=>rate(ch.id)}>👍 {ch.rating}</button>
-
-<h4>Komentarze</h4>
-{ch.comments.map((c,i)=><div key={i}><b>{c.user}:</b> {c.text}</div>)}
-
-<input placeholder="Komentarz" value={comment} onChange={e=>setComment(e.target.value)}/>
-<button onClick={()=>addComment(ch.id)}>Dodaj</button>
-
-</div>
-)}
-
-</div>
-);
-}
-
-/* ========= ADMIN ========= */
+// ===== ADMIN =====
 function Admin({add}){
+  const [title,setTitle]=React.useState("");
+  const [desc,setDesc]=React.useState("");
+  const [tags,setTags]=React.useState([]);
+  const [type,setType]=React.useState(TYPES[0]);
 
-const [title,setTitle]=React.useState("");
-const [desc,setDesc]=React.useState("");
-const [tags,setTags]=React.useState([]);
-const [type,setType]=React.useState(TYPES[0]);
+  function create(){
+    if(!title)return;
+    add({id:uid(),title,description:desc,type,tags,chapters:[]});
+    setTitle(""); setDesc(""); setTags([]);
+  }
 
-function create(){
-if(!title)return;
-add({id:uid(),title,description:desc,type,tags,chapters:[]});
-setTitle("");setDesc("");setTags([]);
+  return e("div",{className:"card"},
+    e("h3",null,"Dodaj serię"),
+    e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
+    e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
+    e("select",{value:type,onChange:e=>setType(e.target.value)},TYPES.map(t=>e("option",{key:t},t))),
+    e("div",null,
+      TAGS.map(t=>e("span",{key:t,className:"tag",
+        style:{background:tags.includes(t)?"#9333ea":"#3b0764"},
+        onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])
+      },t))
+    ),
+    e("button",{onClick:create},"Dodaj serię")
+  );
 }
 
-return(
-<div className="card">
-<h3>Dodaj serię</h3>
-<input placeholder="Tytuł" value={title} onChange={e=>setTitle(e.target.value)}/>
-<textarea placeholder="Opis" value={desc} onChange={e=>setDesc(e.target.value)}/>
-
-<select value={type} onChange={e=>setType(e.target.value)}>
-{TYPES.map(t=><option key={t}>{t}</option>)}
-</select>
-
-<div>
-{TAGS.map(t=>
-<span key={t} className="tag"
-style={{background:tags.includes(t)?"#9333ea":"#3b0764"}}
-onClick={()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])}>
-{t}
-</span>
-)}
-</div>
-
-<button onClick={create}>Dodaj serię</button>
-</div>
-);
-}
-
-/* ========= LOGIN ========= */
+// ===== LOGIN =====
 function Login({setUser}){
-const [name,setName]=React.useState("");
-return(
-<div className="card">
-<input placeholder="Nick" value={name} onChange={e=>setName(e.target.value)}/>
-<button onClick={()=>setUser(name)}>Wejdź</button>
-</div>
-);
+  const [name,setName]=React.useState("");
+  return e("div",{className:"card"},
+    e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
+    e("button",{onClick:()=>setUser(name)},"Wejdź")
+  );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-
+ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 </script>
 </body>
 </html>
