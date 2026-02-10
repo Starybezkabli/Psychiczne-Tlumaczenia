@@ -7,14 +7,14 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
-header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10}
+header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 input,textarea,select{width:100%;background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin-bottom:6px}
 button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
 button:hover{background:#7c3aed}
 .card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin-bottom:12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
 .tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
-.cover{width:100%;height:260px;object-fit:cover;border-radius:8px}
+.cover{width:100%;height:260px;object-fit:cover;border-radius:8px;cursor:pointer}
 .chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
 .readerOverlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
 .readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px;align-items:center}
@@ -38,7 +38,12 @@ const e=React.createElement;
 const ADMIN={mail:"valerii000vall@gmail.com",pass:"pika6969",name:"StaryBezKabli"};
 
 // TAGS
-const TAGS=[yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy", "wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici", "szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory", "magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia", "duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki", "fetysze","zemsta","klątwy"];
+const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
+"wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici",
+"szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory",
+"magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia",
+"duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze",
+"zemsta","klątwy"];
 
 // STORAGE
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
@@ -72,6 +77,8 @@ function App(){
  const isAdmin=user?.mail===ADMIN.mail;
  const isMod=user && (accounts[user.mail]?.role==="mod" || isAdmin);
 
+ const topSeries=[...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
+
  const filtered=series.filter(s=>{
   const q=query.toLowerCase();
   const text=!q||s.title.toLowerCase().includes(q);
@@ -79,39 +86,45 @@ function App(){
   return text&&tags;
  });
 
- function toggleFav(id){
-  setFavorites(favorites.includes(id) ? favorites.filter(f=>f!==id) : [...favorites,id]);
- }
-
- function addSeries(s){ if(isAdmin)setSeries([...series,s]); }
- function deleteSeries(id){ if(isAdmin)setSeries(series.filter(s=>s.id!==id)); }
- function addCommentGlobal(userName,text){ setComments([{id:uid(),user:userName,text},...comments]); }
+ function toggleFav(id){ setFavorites(favorites.includes(id)?favorites.filter(f=>f!==id):[...favorites,id]); }
+ function addSeries(s){ if(isAdmin){ setSeries([...series,s]); setView("home"); } }
+ function deleteSeries(id){ if(isAdmin) setSeries(series.filter(s=>s.id!==id)); }
+ function addCommentGlobal(userName,text){ if(!text.trim())return; setComments([{id:uid(),user:userName,text},...comments]); }
  function addHistory(entry){ setHistory(prev=>[{id:uid(),...entry,time:Date.now()}, ...prev.slice(0,49)]); }
 
  return e("div",null,
   e("header",null,
-   e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
-    e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
-    e("input",{placeholder:"Szukaj…",value:query,onFocus:()=>setShowSearch(true),onChange:e=>setQuery(e.target.value)}),
-    isAdmin && e("button",{onClick:()=>setView("add")},"+ Dodaj tytuł"),
-    e("button",{onClick:()=>setView("library")},"Biblioteka"),
-    e("button",{onClick:()=>setView("profile")},"Profil"),
-    isAdmin && e("button",{onClick:()=>setView("admin")},"Panel Admin"),
-    user?e("button",{onClick:()=>setUser(null)},"Wyloguj")
-        :e("button",{onClick:()=>setView("login")},"Login")
-   ),
+   e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
+   e("input",{placeholder:"Szukaj…",value:query,onFocus:()=>setShowSearch(true),onChange:e=>setQuery(e.target.value)}),
+   isAdmin && e("button",{onClick:()=>setView("add")},"+ Dodaj tytuł"),
+   e("button",{onClick:()=>setView("library")},"Biblioteka"),
+   e("button",{onClick:()=>setView("profile")},"Profil"),
+   isAdmin && e("button",{onClick:()=>setView("admin")},"Panel Admin"),
+   user?e("button",{onClick:()=>setUser(null)},"Wyloguj")
+       :e("button",{onClick:()=>setView("login")},"Login"),
    showSearch && e("div",{className:"searchPanel"},
-    e("b",null,"Filtruj tagi:"),
-    TAGS.map(t=>e("span",{key:t,className:"tag",
-     style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
-     onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
-    },t))
+     e("b",null,"Filtruj tagi:"),
+     TAGS.map(t=>e("span",{key:t,className:"tag",
+       style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
+       onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
+     },t))
    )
   ),
   e("div",{style:{padding:12}},
-   view==="home" && e(Home,{series:filtered,open:s=>{setActive(s);setView("series");},favorites,toggleFav,isAdmin,team,setTeam,comments,addCommentGlobal}),
+   view==="home" && e(Home,{
+     series:filtered,
+     topSeries,
+     open:s=>{setActive(s);setView("series");},
+     favorites,
+     toggleFav,
+     isAdmin,
+     team,
+     setTeam,
+     comments,
+     addCommentGlobal
+   }),
    view==="series" && active && e(SeriesComp,{data:active,setSeries,user,isAdmin,isMod,setReader,addHistory,comments,setComments}),
-   view==="library" && e(Library,{series,favorites,open:s=>{setActive(s);setView("series");}}),
+   view==="library" && e(LibraryComp,{series,favorites,open:s=>{setActive(s);setView("series");}}),
    view==="add" && e(AddSeriesComp,{add:addSeries}),
    view==="login" && e(LoginComp,{accounts,setAccounts,setUser}),
    view==="profile" && e(ProfileComp,{user,accounts,setAccounts,history}),
@@ -121,98 +134,273 @@ function App(){
  );
 }
 
-// COMPONENTS
+// HOME
+function Home({series, topSeries, open, favorites, toggleFav, isAdmin, team, setTeam, comments, addCommentGlobal}){
+  const [name,setName]=React.useState("");
+  const [img,setImg]=React.useState(null);
+  const [comment,setComment]=React.useState("");
 
-function Home({series,open,favorites,toggleFav,isAdmin,team,setTeam,comments,addCommentGlobal}){
- const [name,setName]=React.useState("");
- const [img,setImg]=React.useState(null);
- function upload(e){ const r=new FileReader(); r.onload=()=>setImg(r.result); r.readAsDataURL(e.target.files[0]); }
- function addMember(){ if(!name||!img)return; setTeam([...team,{id:uid(),name,avatar:img}]); setName(""); setImg(null); }
+  function upload(e){ 
+    const r=new FileReader(); 
+    r.onload=()=>setImg(r.result); 
+    r.readAsDataURL(e.target.files[0]); 
+  }
 
- return e("div",null,
-  e("div",{className:"grid"},
-   series.map(s=>e("div",{key:s.id,className:"card"},
-    s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-    e("b",{onClick:()=>open(s)},s.title),
-    e(RatingComp,{series:s}),
-    e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
-   ))
-  ),
-  isAdmin && e("div",{className:"card"},
-   e("h3",null,"Dodaj członka zespołu"),
-   e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),
-   e("input",{type:"file",accept:"image/*",onChange:upload}),
-   e("button",{onClick:addMember},"Dodaj")
-  ),
-  e("div",{className:"card"},
-   e("h3",null,"Globalne komentarze"),
-   e("input",{placeholder:"Komentarz…",onKeyDown:e=>{if(e.key==="Enter"){addCommentGlobal("Admin",e.target.value); e.target.value="";}}}),
-   comments.map(c=>e("div",{key:c.id,className:"comment"},e("b",null,c.user+": "),c.text))
-  ),
-  e("div",{className:"card"},
-   e("h3",null,"Zespół"),
-   team.map(m=>e("div",{key:m.id,className:"teamMember"},
-    e("img",{src:m.avatar,className:"smallAvatar"}),
-    e("span",null,m.name)
-   ))
-  )
- );
+  function addMember(){ 
+    if(!name||!img) return; 
+    setTeam([...team,{id:uid(),name,avatar:img}]); 
+    setName(""); setImg(null); 
+  }
+
+  function addGlobalComment(){
+    if(!comment.trim()) return;
+    addCommentGlobal("Admin",comment);
+    setComment("");
+  }
+
+  return e("div",null,
+    e("div",{className:"card"},
+      e("h3",null,"Top 5 popularnych serii"),
+      e("div",{className:"grid"},
+        topSeries.map(s=>e("div",{key:s.id,className:"card"}, 
+          s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+          e("b",{onClick:()=>open(s)},s.title),
+          e(RatingComp,{series:s}),
+          e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+        ))
+      )
+    ),
+    e("div",{className:"card"},
+      e("h3",null,"Wszystkie serie"),
+      e("div",{className:"grid"},
+        series.map(s=>e("div",{key:s.id,className:"card"},
+          s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+          e("b",{onClick:()=>open(s)},s.title),
+          e(RatingComp,{series:s}),
+          e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+        ))
+      )
+    ),
+    isAdmin && e("div",{className:"card"},
+      e("h3",null,"Dodaj członka zespołu"),
+      e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),
+      e("input",{type:"file",accept:"image/*",onChange:upload}),
+      e("button",{onClick:addMember},"Dodaj")
+    ),
+    e("div",{className:"card"},
+      e("h3",null,"Globalne komentarze"),
+      e("input",{placeholder:"Komentarz…",value:comment,onChange:e=>setComment(e.target.value),onKeyDown:e=>{if(e.key==="Enter") addGlobalComment();}}),
+      e("button",{onClick:addGlobalComment},"Dodaj"),
+      comments.map(c=>e("div",{key:c.id,className:"comment"},e("b",null,c.user+": "),c.text))
+    ),
+    e("div",{className:"card"},
+      e("h3",null,"Zespół"),
+      team.map(m=>e("div",{key:m.id,className:"teamMember"},
+        e("img",{src:m.avatar,className:"smallAvatar"}),
+        e("span",null,m.name)
+      ))
+    )
+  );
 }
 
+// SERIES COMP
 function SeriesComp({data,setSeries,user,isAdmin,isMod,setReader,addHistory,comments,setComments}){
- const [title,setTitle]=React.useState("");
- const [images,setImages]=React.useState([]);
- const [comment,setComment]=React.useState("");
+  const [title,setTitle]=React.useState("");
+  const [images,setImages]=React.useState([]);
+  const [comment,setComment]=React.useState("");
 
- function upload(e){ const files=[...e.target.files]; Promise.all(files.map(f=>new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(f); }))).then(setImages); }
- function addChapter(){ if(!(isAdmin||isMod)||!title)return; const ch={id:uid(),title,images,comments:[],rating:0}; const updated={...data,chapters:[...(data.chapters||[]),ch]}; setSeries(prev=>prev.map(s=>s.id===data.id?updated:s)); setTitle(""); setImages([]); }
- function addCommentToChapter(ch){ if(!user||!comment)return; const updated={...data,chapters:data.chapters.map(c=>c.id===ch.id?{...c,comments:[...c.comments,{user:user.name,text:comment}]}:c)}; setSeries(prev=>prev.map(s=>s.id===data.id?updated:s)); setComment(""); }
+  function upload(e){ 
+    const files=[...e.target.files]; 
+    Promise.all(files.map(f=>new Promise(r=>{
+      const fr=new FileReader();
+      fr.onload=()=>r(fr.result);
+      fr.readAsDataURL(f);
+    }))).then(setImages); 
+  }
 
- return e("div",null,
-  e("div",{className:"card"},
-   e("h2",null,data.title),
-   data.cover && e("img",{src:data.cover,className:"cover"}),
-   e("p",null,data.description),
-   isAdmin && e("button",{onClick:()=>setSeries(prev=>prev.filter(s=>s.id!==data.id))},"Usuń serię")
-  ),
-  isAdmin && e("div",{className:"card"},
-   e("h3",null,"Dodaj rozdział"),
-   e("input",{placeholder:"Tytuł rozdziału",value:title,onChange:x=>setTitle(x.target.value)}),
-   e("input",{type:"file",multiple:true,accept:"image/*",onChange:upload}),
-   e("button",{onClick:addChapter},"Dodaj")
-  ),
-  (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
-   e("div",{className:"chapter",onClick:()=>{ setReader(ch); user && addHistory({user:user.mail,series:data.title,chapter:ch.title}); }},ch.title),
-   e("div",null,"Ocena: ",[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=ch.rating?"#facc15":"#555"},onClick:()=>{ch.rating=v; setSeries(prev=>prev.map(s=>s.id===data.id?data:s));}},"★"))),
-   e("div",null,ch.comments.map(c=>e("div",{key:c.text,className:"comment"},e("b",null,c.user+": "),c.text))),
-   user && e("div",null,e("input",{placeholder:"Dodaj komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),e("button",{onClick:()=>addCommentToChapter(ch)},"Dodaj"))
-  ))
- );
+  function addChapter(){
+    if(!(isAdmin||isMod)||!title) return; 
+    const ch={id:uid(),title,images,comments:[],rating:0}; 
+    const updated={...data,chapters:[...(data.chapters||[]),ch]}; 
+    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s)); 
+    setTitle(""); setImages([]);
+  }
+
+  function deleteChapter(chId){
+    const updated={...data,chapters:(data.chapters||[]).filter(c=>c.id!==chId)};
+    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+  }
+
+  function addCommentToChapter(ch){
+    if(!user||!comment) return;
+    const updated={...data,chapters:data.chapters.map(c=>c.id===ch.id?{...c,comments:[...c.comments,{user:user.name,text:comment}]}:c)};
+    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+    setComment("");
+  }
+
+  return e("div",null,
+    e("div",{className:"card"},
+      e("h2",null,data.title),
+      data.cover && e("img",{src:data.cover,className:"cover"}),
+      e("p",null,data.description),
+      isAdmin && e("button",{onClick:()=>setSeries(prev=>prev.filter(s=>s.id!==data.id))},"Usuń serię")
+    ),
+    (isAdmin||isMod) && e("div",{className:"card"},
+      e("h3",null,"Dodaj rozdział"),
+      e("input",{placeholder:"Tytuł rozdziału",value:title,onChange:x=>setTitle(x.target.value)}),
+      e("input",{type:"file",multiple:true,accept:"image/*",onChange:upload}),
+      e("button",{onClick:addChapter},"Dodaj")
+    ),
+    (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
+      e("div",{className:"chapter",onClick:()=>{ setReader(ch); user && addHistory({user:user.mail,series:data.title,chapter:ch.title}); }},ch.title),
+      e("button",{onClick:()=>deleteChapter(ch.id)},"Usuń rozdział"),
+      e("div",null,"Ocena: ",[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=ch.rating?"#facc15":"#555"},onClick:()=>{ch.rating=v; setSeries(prev=>prev.map(s=>s.id===data.id?data:s));}},"★"))),
+      e("div",null,ch.comments.map(c=>e("div",{key:c.text,className:"comment"},e("b",null,c.user+": "),c.text))),
+      user && e("div",null,e("input",{placeholder:"Dodaj komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),e("button",{onClick:()=>addCommentToChapter(ch)},"Dodaj"))
+    ))
+  );
 }
 
-function Library({series,favorites,open}){ return e("div",{className:"grid"},series.filter(s=>favorites.includes(s.id)).map(s=>e("div",{key:s.id,className:"card"},s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),e("b",{onClick:()=>open(s)},s.title)))); }
+// LIBRARY COMP
+function LibraryComp({series,favorites,open}){
+  return e("div",null,
+    e("h3",null,"Twoja biblioteka"),
+    e("div",{className:"grid"},
+      series.filter(s=>favorites.includes(s.id)).map(s=>e("div",{key:s.id,className:"card"},
+        s.cover && e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+        e("b",{onClick:()=>open(s)},s.title)
+      ))
+    )
+  );
+}
 
-function AddSeriesComp({add}){ const [title,setTitle]=React.useState(""); const [desc,setDesc]=React.useState(""); const [tags,setTags]=React.useState([]); const [cover,setCover]=React.useState(null); function upload(e){ const r=new FileReader(); r.onload=()=>setCover(r.result); r.readAsDataURL(e.target.files[0]); } function create(){ if(!title)return; add({id:uid(),title,description:desc,tags,cover,chapters:[],rating:0}); setTitle(""); setDesc(""); setTags([]); setCover(null); } return e("div",{className:"card"},e("h3",null,"Dodaj serię"),e("input",{placeholder:"Tytuł",value:title,onChange:x=>setTitle(x.target.value)}),e("textarea",{placeholder:"Opis",value:desc,onChange:x=>setDesc(x.target.value)}),e("input",{type:"file",accept:"image/*",onChange:upload}),e("div",null,TAGS.map(t=>e("span",{key:t,className:"tag",style:{background:tags.includes(t)?"#9333ea":"#3b0764"},onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])},t))),e("button",{onClick:create},"Dodaj")); }
+// ADD SERIES COMP
+function AddSeriesComp({add}){
+  const [title,setTitle]=React.useState("");
+  const [desc,setDesc]=React.useState("");
+  const [tags,setTags]=React.useState([]);
+  const [cover,setCover]=React.useState(null);
 
-function ProfileComp({user,accounts,setAccounts,history}){ if(!user) return e("div",{className:"card"},"Zaloguj się."); const acc=accounts[user.mail]||{}; const [avatar,setAvatar]=React.useState(acc.avatar||null); function upload(e){ const r=new FileReader(); r.onload=()=>{ const updated={...accounts,[user.mail]:{...acc,avatar:r.result}}; setAccounts(updated); setAvatar(r.result); }; r.readAsDataURL(e.target.files[0]); } return e("div",null,e("div",{className:"card"},avatar&&e("img",{src:avatar,className:"avatar"}),e("h3",null,user.name),e("input",{type:"file",accept:"image/*",onChange:upload})), e("div",{className:"card"},e("h3",null,"Historia czytania"),history.filter(h=>h.user===user.mail).map(h=>e("div",{key:h.id},`${h.series} — ${h.chapter}`)))); }
+  function upload(e){
+    const r=new FileReader();
+    r.onload=()=>setCover(r.result);
+    r.readAsDataURL(e.target.files[0]);
+  }
 
+  function create(){
+    if(!title) return;
+    add({id:uid(),title,description:desc,tags,cover,chapters:[],rating:0});
+    setTitle(""); setDesc(""); setTags([]); setCover(null);
+  }
+
+  return e("div",{className:"card"},
+    e("h3",null,"Dodaj serię"),
+    e("input",{placeholder:"Tytuł",value:title,onChange:x=>setTitle(x.target.value)}),
+    e("textarea",{placeholder:"Opis",value:desc,onChange:x=>setDesc(x.target.value)}),
+    e("input",{type:"file",accept:"image/*",onChange:upload}),
+    e("div",null,TAGS.map(t=>e("span",{key:t,className:"tag",style:{background:tags.includes(t)?"#9333ea":"#3b0764"},onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])},t))),
+    e("button",{onClick:create},"Dodaj")
+  );
+}
+
+// PROFILE COMP
+function ProfileComp({user,accounts,setAccounts,history}){
+  if(!user) return e("div",{className:"card"},"Zaloguj się.");
+  const acc=accounts[user.mail]||{};
+  const [avatar,setAvatar]=React.useState(acc.avatar||null);
+
+  function upload(e){
+    const r=new FileReader();
+    r.onload=()=>{
+      const updated={...accounts,[user.mail]:{...acc,avatar:r.result}};
+      setAccounts(updated); setAvatar(r.result);
+    };
+    r.readAsDataURL(e.target.files[0]);
+  }
+
+  return e("div",null,
+    e("div",{className:"card"},
+      avatar && e("img",{src:avatar,className:"avatar"}),
+      e("h3",null,user.name),
+      e("input",{type:"file",accept:"image/*",onChange:upload})
+    ),
+    e(LibraryComp,{series:history.map(h=>({id:h.id,title:h.series,cover:h.cover||""})),favorites:history.map(h=>h.id),open:()=>{}})
+  );
+}
+
+// ADMIN PANEL
 function AdminPanel({accounts,setAccounts,series,setSeries,team,setTeam}){
- const [newName,setNewName]=React.useState(""); const [newAvatar,setNewAvatar]=React.useState(null);
- function addMember(){ if(!newName||!newAvatar)return; setTeam([...team,{id:uid(),name:newName,avatar:newAvatar}]); setNewName(""); setNewAvatar(null); }
- function uploadAvatar(e){ const r=new FileReader(); r.onload=()=>setNewAvatar(r.result); r.readAsDataURL(e.target.files[0]); }
- function setRole(mail,role){ accounts[mail].role=role; setAccounts({...accounts}); }
- return e("div",null,
-  e("h3",null,"Panel Admina"),
-  e("div",{className:"card"},e("h4",null,"Użytkownicy"),Object.entries(accounts).map(([mail,acc])=>e("div",{key:mail},mail," — ",e("select",{value:acc.role||"user",onChange:x=>setRole(mail,x.target.value)},e("option",{value:"user"},"User"),e("option",{value:"mod"},"Moderator"),e("option",{value:"admin"},"Admin"))))),
-  e("div",{className:"card"},e("h4",null,"Dodaj członka zespołu"),e("input",{placeholder:"Nick",value:newName,onChange:e=>setNewName(e.target.value)}),e("input",{type:"file",accept:"image/*",onChange:uploadAvatar}),e("button",{onClick:addMember},"Dodaj"))
- ); 
+  const [newName,setNewName]=React.useState("");
+  const [newAvatar,setNewAvatar]=React.useState(null);
+
+  function addMember(){ if(!newName||!newAvatar) return; setTeam([...team,{id:uid(),name:newName,avatar:newAvatar}]); setNewName(""); setNewAvatar(null); }
+  function uploadAvatar(e){ const r=new FileReader(); r.onload=()=>setNewAvatar(r.result); r.readAsDataURL(e.target.files[0]); }
+  function setRole(mail,role){ accounts[mail].role=role; setAccounts({...accounts}); }
+
+  return e("div",null,
+    e("h3",null,"Panel Admina"),
+    e("div",{className:"card"},
+      e("h4",null,"Użytkownicy"),
+      Object.entries(accounts).map(([mail,acc])=>e("div",{key:mail},
+        mail," — ",e("select",{value:acc.role||"user",onChange:x=>setRole(mail,x.target.value)},
+          e("option",{value:"user"},"User"),
+          e("option",{value:"mod"},"Moderator"),
+          e("option",{value:"admin"},"Admin")
+        )
+      ))
+    ),
+    e("div",{className:"card"},
+      e("h4",null,"Dodaj członka zespołu"),
+      e("input",{placeholder:"Nick",value:newName,onChange:e=>setNewName(e.target.value)}),
+      e("input",{type:"file",accept:"image/*",onChange:uploadAvatar}),
+      e("button",{onClick:addMember},"Dodaj")
+    )
+  );
 }
 
-function ReaderComp({chapter,onClose}){ return e("div",{className:"readerOverlay"}, e("div",{className:"readerBar"}, e("button",{onClick:onClose},"← Zamknij"), e("b",null,chapter.title)), e("div",{className:"reader"},(chapter.images||[]).map((img,i)=>e("img",{key:i,src:img}))) ); }
+// READER COMP
+function ReaderComp({chapter,onClose}){
+  return e("div",{className:"readerOverlay"},
+    e("div",{className:"readerBar"},
+      e("button",{onClick:onClose},"← Zamknij"),
+      e("b",null,chapter.title)
+    ),
+    e("div",{className:"reader"},
+      (chapter.images||[]).map((img,i)=>e("img",{key:i,src:img}))
+    )
+  );
+}
 
-function LoginComp({accounts,setAccounts,setUser}){ const [name,setName]=React.useState(""); const [mail,setMail]=React.useState(""); const [pass,setPass]=React.useState(""); function login(){ if(mail===ADMIN.mail && pass===ADMIN.pass){ setUser({name:ADMIN.name,mail:ADMIN.mail}); return; } const acc=accounts[mail]; if(acc && acc.password!==pass) return alert("Złe hasło"); const updated={...accounts,[mail]:{name,password:pass,role:"user"}}; setAccounts(updated); setUser({name,mail}); } return e("div",{className:"card"},e("h3",null,"Login / Rejestracja"),e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),e("input",{placeholder:"Email",value:mail,onChange:x=>setMail(x.target.value)}),e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:x=>setPass(x.target.value)}),e("button",{onClick:login},"Wejdź")); }
+// LOGIN / REGISTER
+function LoginComp({accounts,setAccounts,setUser}){
+  const [name,setName]=React.useState("");
+  const [mail,setMail]=React.useState("");
+  const [pass,setPass]=React.useState("");
 
-function RatingComp({series}){ const [rating,setRating]=React.useState(series.rating||0); function rate(v){ series.rating=v; save("series",load("series",[])); setRating(v); } return e("div",null,[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=rating?"#facc15":"#555"},onClick:()=>rate(v)},"★"))); }
+  function login(){
+    if(mail===ADMIN.mail && pass===ADMIN.pass){ setUser({name:ADMIN.name,mail:ADMIN.mail}); return; }
+    const acc=accounts[mail];
+    if(acc && acc.password!==pass) return alert("Złe hasło");
+    const updated={...accounts,[mail]:{name,password:pass,role:"user"}};
+    setAccounts(updated);
+    setUser({name,mail});
+  }
+
+  return e("div",{className:"card"},
+    e("h3",null,"Login / Rejestracja"),
+    e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),
+    e("input",{placeholder:"Email",value:mail,onChange:x=>setMail(x.target.value)}),
+    e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:x=>setPass(x.target.value)}),
+    e("button",{onClick:login},"Wejdź")
+  );
+}
+
+// RATING COMP
+function RatingComp({series}){
+  const [rating,setRating]=React.useState(series.rating||0);
+  function rate(v){ series.rating=v; save("series",load("series",[])); setRating(v); }
+  return e("div",null,[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=rating?"#facc15":"#555"},onClick:()=>rate(v)},"★")));
+}
 
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 </script>
