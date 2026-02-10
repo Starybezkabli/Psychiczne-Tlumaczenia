@@ -183,7 +183,7 @@ function Home({series, topSeries, open, favorites, toggleFav, isAdmin, team, set
     ),
     isAdmin && e("div",{className:"card"},
       e("h3",null,"Dodaj członka zespołu"),
-      e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),
+      e("input",{placeholder:"Nick",value:name,onChange={target=>setName(target.value)}}),
       e("input",{type:"file",accept:"image/*",onChange:upload}),
       e("button",{onClick:addMember},"Dodaj")
     ),
@@ -247,14 +247,14 @@ function SeriesComp({data,setSeries,user,isAdmin,isMod,setReader,addHistory,comm
     ),
     (isAdmin||isMod) && e("div",{className:"card"},
       e("h3",null,"Dodaj rozdział"),
-      e("input",{placeholder:"Tytuł rozdziału",value:title,onChange:x=>setTitle(x.target.value)}),
+      e("input",{placeholder:"Tytuł rozdziału",value:title,onChange:e=>setTitle(e.target.value)}),
       e("input",{type:"file",multiple:true,accept:"image/*",onChange:upload}),
       e("button",{onClick:addChapter},"Dodaj")
     ),
     (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
       e("div",{className:"chapter",onClick:()=>{ setReader(ch); user && addHistory({user:user.mail,series:data.title,chapter:ch.title}); }},ch.title),
       e("button",{onClick:()=>deleteChapter(ch.id)},"Usuń rozdział"),
-      e("div",null,"Ocena: ",[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=ch.rating?"#facc15":"#555"},onClick:()=>{ch.rating=v; setSeries(prev=>prev.map(s=>s.id===data.id?data:s));}},"★"))),
+      e("div",null,"Ocena: ",[1,2,3,4,5].map(v=>e("span",{key:v,style:{cursor:"pointer",color:v<=ch.rating?"#facc15":"#555"},onClick:()=>{const updated={...data,chapters:data.chapters.map(c=>c.id===ch.id?{...c,rating:v}:c)}; setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));}},"★"))),
       e("div",null,ch.comments.map(c=>e("div",{key:c.text,className:"comment"},e("b",null,c.user+": "),c.text))),
       user && e("div",null,e("input",{placeholder:"Dodaj komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),e("button",{onClick:()=>addCommentToChapter(ch)},"Dodaj"))
     ))
@@ -295,8 +295,8 @@ function AddSeriesComp({add}){
 
   return e("div",{className:"card"},
     e("h3",null,"Dodaj serię"),
-    e("input",{placeholder:"Tytuł",value:title,onChange:x=>setTitle(x.target.value)}),
-    e("textarea",{placeholder:"Opis",value:desc,onChange:x=>setDesc(x.target.value)}),
+    e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
+    e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
     e("input",{type:"file",accept:"image/*",onChange:upload}),
     e("div",null,TAGS.map(t=>e("span",{key:t,className:"tag",style:{background:tags.includes(t)?"#9333ea":"#3b0764"},onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])},t))),
     e("button",{onClick:create},"Dodaj")
@@ -342,7 +342,7 @@ function AdminPanel({accounts,setAccounts,series,setSeries,team,setTeam}){
     e("div",{className:"card"},
       e("h4",null,"Użytkownicy"),
       Object.entries(accounts).map(([mail,acc])=>e("div",{key:mail},
-        mail," — ",e("select",{value:acc.role||"user",onChange:x=>setRole(mail,x.target.value)},
+        mail," — ",e("select",{value:acc.role||"user",onChange:e=>setRole(mail,e.target.value)},
           e("option",{value:"user"},"User"),
           e("option",{value:"mod"},"Moderator"),
           e("option",{value:"admin"},"Admin")
@@ -388,9 +388,9 @@ function LoginComp({accounts,setAccounts,setUser}){
 
   return e("div",{className:"card"},
     e("h3",null,"Login / Rejestracja"),
-    e("input",{placeholder:"Nick",value:name,onChange:x=>setName(x.target.value)}),
-    e("input",{placeholder:"Email",value:mail,onChange:x=>setMail(x.target.value)}),
-    e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:x=>setPass(x.target.value)}),
+    e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
+    e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
+    e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:e=>setPass(e.target.value)}),
     e("button",{onClick:login},"Wejdź")
   );
 }
