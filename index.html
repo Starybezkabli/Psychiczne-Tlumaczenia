@@ -4,11 +4,9 @@
 <meta charset="UTF-8">
 <title>Psychiczne tłumaczenia — Ultimate Reader</title>
 
-
 <!-- React -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
 
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
@@ -31,10 +29,8 @@ button:hover{background:#7c3aed}
 <body>
 <div id="root"></div>
 
-
 <script>
 const e=React.createElement;
-
 
 // ===== TAGS — DO NOT REMOVE =====
 const TAGS=[
@@ -46,19 +42,15 @@ const TAGS=[
 "zemsta","klątwy"
 ];
 
-
 const TYPES=["manhwa","manga","manhua","novelka","webtoon","one shot"];
-
 
 // ===== STORAGE =====
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const uid=()=>Date.now()+Math.random();
 
-
 // ===== APP =====
 function App(){
-
 
 const [series,setSeries]=React.useState(load("series",[]));
 const [user,setUser]=React.useState(load("user",null));
@@ -66,19 +58,15 @@ const [view,setView]=React.useState("home");
 const [active,setActive]=React.useState(null);
 const [reader,setReader]=React.useState(null);
 
-
 const [query,setQuery]=React.useState("");
 const [selectedTags,setSelectedTags]=React.useState([]);
 const [showSearch,setShowSearch]=React.useState(false);
 
-
 const [favorites,setFavorites]=React.useState(load("favorites",[]));
-
 
 React.useEffect(()=>save("series",series),[series]);
 React.useEffect(()=>save("user",user),[user]);
 React.useEffect(()=>save("favorites",favorites),[favorites]);
-
 
 // ===== FILTER =====
 const filtered=series.filter(s=>{
@@ -88,27 +76,186 @@ const matchTags=!selectedTags.length||selectedTags.every(t=>s.tags.includes(t));
 return matchText&&matchTags;
 });
 
-
 function toggleFav(id){
 setFavorites(favorites.includes(id)
 ?favorites.filter(f=>f!==id)
 :[...favorites,id]);
 }
 
-
 return e("div",null,
 
-
 // ===== HEADER =====
-e("header",null,
-e("div",{style:{display:"flex",gap:8}},
+ e("header",null,
+  e("div",{style:{display:"flex",gap:8}},
 
+   e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
 
-e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
+   e("input",{
+    placeholder:"Szukaj tytułu…",
+    value:query,
+    onFocus:()=>setShowSearch(true),
+    onChange:e=>setQuery(e.target.value)
+   }),
 
+   e("button",{onClick:()=>setView("library")},"Biblioteka"),
 
-e("input",{
-placeholder:"Szukaj tytułu…",
-value:query,
-onFocus:()=>setShowSearch(true),
+   user
+    ?e("button",{onClick:()=>setUser(null)},"Wyloguj")
+    :e("button",{onClick:()=>setView("login")},"Login")
+  ),
+
+  showSearch&&e("div",{className:"searchPanel"},
+   e("b",null,"Filtruj tagi:"),
+   e("div",null,
+    TAGS.map(t=>e("span",{
+     key:t,
+     className:"tag",
+     style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
+     onClick:()=>setSelectedTags(
+      selectedTags.includes(t)
+      ?selectedTags.filter(x=>x!==t)
+      :[...selectedTags,t]
+     )
+    },t))
+   ),
+   e("button",{onClick:()=>setSelectedTags([])},"Wyczyść filtry")
+  )
+ ),
+
+// ===== VIEWS =====
+ e("div",{style:{padding:12}},
+
+  view==="home"&&e(Home,{series:filtered,open:s=>{setActive(s);setView("series");},favorites,toggleFav}),
+
+  view==="series"&&active&&e(Series,{data:active,setSeries,user,setReader}),
+
+  view==="library"&&e(Library,{series,favorites,open:s=>{setActive(s);setView("series");}}),
+
+  view==="login"&&e(Login,{setUser})
+ ),
+
+// ===== READER =====
+ reader&&e(Reader,{chapter:reader,onClose:()=>setReader(null)})
+);
+}
+
+// ===== HOME =====
+function Home({series,open,favorites,toggleFav}){
+return e("div",{className:"grid"},
+series.map(s=>e("div",{key:s.id,className:"card"},
+ s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+ e("b",{onClick:()=>open(s),style:{cursor:"pointer"}},s.title),
+ e("div",null,
+  e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+ ),
+ e("div",null,s.tags.map(t=>e("span",{key:t,className:"tag"},t)))
+)));
+}
+
+// ===== SERIES PAGE =====
+function Series({data,setSeries,user,setReader}){
+const [ctitle,setCtitle]=React.useState("");
+const [cimages,setCimages]=React.useState([]);
+const [comment,setComment]=React.useState("");
+
+function upload(e){
+const files=[...e.target.files];
+Promise.all(files.map(f=>new Promise(res=>{
+const r=new FileReader();
+r.onload=()=>res(r.result);
+r.readAsDataURL(f);
+}))).then(setCimages);
+}
+
+function addChapter(){
+if(!user?.admin||!ctitle)return;
+const ch={id:uid(),title:ctitle,images:cimages,comments:[]};
+const updated={...data,chapters:[...(data.chapters||[]),ch]};
+setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+setCtitle("");setCimages([]);
+}
+
+function addComment(id){
+if(!user||!comment)return;
+const updated={
+...data,
+chapters:data.chapters.map(c=>
+c.id===id?{...c,comments:[...c.comments,{user:user.name,text:comment}]}:c
+)};
+setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
+setComment("");
+}
+
+return e("div",null,
+ e("div",{className:"card"},
+  e("h2",null,data.title),
+  data.cover&&e("img",{src:data.cover,className:"cover"}),
+  e("p",null,data.description)
+ ),
+
+ user?.admin&&e("div",{className:"card"},
+  e("h3",null,"Dodaj rozdział"),
+  e("input",{placeholder:"Tytuł",value:ctitle,onChange:e=>setCtitle(e.target.value)}),
+  e("input",{type:"file",multiple:true,accept:"image/*",onChange:upload}),
+  e("button",{onClick:addChapter},"Dodaj")
+ ),
+
+ (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
+  e("div",{className:"chapter",onClick:()=>setReader(ch)},ch.title),
+
+  e("h4",null,"Komentarze"),
+  ch.comments.map((c,i)=>e("div",{key:i},e("b",null,c.user+": "),c.text)),
+
+  user&&e("div",null,
+   e("input",{placeholder:"Komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),
+   e("button",{onClick:()=>addComment(ch.id)},"Dodaj")
+  )
+ ))
+);
+}
+
+// ===== LIBRARY =====
+function Library({series,favorites,open}){
+const favSeries=series.filter(s=>favorites.includes(s.id));
+return e("div",{className:"grid"},
+ favSeries.map(s=>e("div",{key:s.id,className:"card"},
+  s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+  e("b",{onClick:()=>open(s),style:{cursor:"pointer"}},s.title)
+ )));
+}
+
+// ===== READER (Mangago/Batoto style) =====
+function Reader({chapter,onClose}){
+return e("div",{className:"readerOverlay"},
+ e("div",{className:"readerBar"},
+  e("button",{onClick:onClose},"← Zamknij"),
+  e("b",null,chapter.title)
+ ),
+ e("div",{className:"reader"},
+  chapter.images.map((img,i)=>e("img",{key:i,src:img,loading:"lazy"}))
+ )
+);
+}
+
+// ===== LOGIN / REGISTER =====
+function Login({setUser}){
+const [name,setName]=React.useState("");
+const [mail,setMail]=React.useState("");
+
+function login(){
+if(!name||!mail)return;
+setUser({name,mail,admin:true});
+}
+
+return e("div",{className:"card"},
+ e("h3",null,"Rejestracja / Login"),
+ e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
+ e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
+ e("button",{onClick:login},"Wejdź")
+);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+</script>
+</body>
 </html>
