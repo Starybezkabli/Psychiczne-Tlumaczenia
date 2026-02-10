@@ -2,25 +2,30 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Psychiczne tłumaczenia</title>
+<title>Psychiczne tłumaczenia — Ultimate Batoto Style</title>
 
-<!-- React production -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
 <style>
-body { margin:0; font-family:system-ui,sans-serif; background:linear-gradient(#120022,#000); color:#e9d5ff; }
-header{background:#2e1065; padding:12px; position:sticky; top:0; z-index:10;}
-.subbar{background:#1a0033; padding:8px; border-top:1px solid #5b21b6;}
-input,textarea,select{width:100%; background:#1a0033; border:1px solid #5b21b6; color:white; padding:8px; border-radius:6px; margin-bottom:6px;}
-button{background:#6d28d9; border:none; padding:8px 12px; border-radius:6px; color:white; cursor:pointer; margin-right:6px;}
-button:hover{background:#7c3aed;}
-.card{background:#1a0033; border:1px solid #5b21b6; padding:12px; border-radius:10px; margin-bottom:12px;}
-.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;}
-.tag{display:inline-block; background:#3b0764; padding:4px 8px; border-radius:999px; margin:2px; font-size:12px; cursor:pointer;}
-.cover{width:100%; height:260px; object-fit:cover; border-radius:8px; margin-bottom:6px;}
-.reader img{width:100%; display:block; margin-bottom:6px; border-radius:8px;}
-.chapter{cursor:pointer; padding:6px; border:1px solid #5b21b6; border-radius:6px; margin-bottom:6px;}
+body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
+header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10}
+.subbar{background:#1a0033;padding:6px;border-top:1px solid #5b21b6}
+input,textarea,select{width:100%;background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin-bottom:6px}
+button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
+button:hover{background:#7c3aed}
+.card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
+.cover{width:100%;height:260px;object-fit:cover;border-radius:8px}
+.chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
+.reader{max-width:900px;margin:auto}
+.reader img{width:100%;display:block;margin-bottom:6px;border-radius:8px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);overflow:auto;padding:20px;z-index:100}
+.searchBox{position:absolute;background:#1a0033;border:1px solid #5b21b6;width:320px;max-height:320px;overflow:auto;border-radius:8px}
+.searchItem{padding:6px;cursor:pointer}
+.searchItem:hover{background:#2e1065}
+.flex{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -29,14 +34,22 @@ button:hover{background:#7c3aed;}
 <script>
 const e=React.createElement;
 
-// ===== CONFIG =====
-const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","fantasy","psychologiczne","komedia","drama","duchy","zemsta"];
-const TYPES=["manhwa","manga","manhua","novelka","webtoon","one shot"];
+// ===== TAGS (UNCHANGED — ALL PRESERVED) =====
+const TAGS=[
+"yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
+"wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici",
+"szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory",
+"magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia",
+"duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze",
+"zemsta","klątwy"
+];
 
-// ===== STORAGE HELPERS =====
+const TYPES=["manhwa","manga","manhua","novelka","webtoon","one shot"];
+const ADMIN_PASS="admin123";
+
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const uid=()=>Date.now()+Math.floor(Math.random()*1000);
+const uid=()=>Date.now()+Math.random();
 
 // ===== APP =====
 function App(){
@@ -45,18 +58,15 @@ function App(){
   const [view,setView]=React.useState("home");
   const [active,setActive]=React.useState(null);
   const [query,setQuery]=React.useState("");
-  const [menu,setMenu]=React.useState(false);
+  const [showSearch,setShowSearch]=React.useState(false);
+  const [reader,setReader]=React.useState(null);
 
   React.useEffect(()=>save("series",series),[series]);
   React.useEffect(()=>save("user",user),[user]);
 
   const filtered=series.filter(s=>{
     const q=query.toLowerCase();
-    return (
-      s.title.toLowerCase().includes(q) ||
-      s.tags.some(t=>t.toLowerCase().includes(q)) ||
-      s.type.toLowerCase().includes(q)
-    );
+    return s.title.toLowerCase().includes(q)||s.tags.some(t=>t.toLowerCase().includes(q));
   });
 
   function toggleLibrary(id){
@@ -67,30 +77,54 @@ function App(){
   }
 
   return e("div",null,
+
+    // HEADER
     e("header",null,
-      e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
-        e("b",{style:{fontSize:20,cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
-        e("input",{placeholder:"Szukaj tytułu/tagu/typu…",value:query,onChange:e=>setQuery(e.target.value)}),
-        e("button",{onClick:()=>setMenu(!menu)},"☰"),
+      e("div",{className:"flex",style:{position:"relative"}},
+        e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
+
+        e("input",{
+          placeholder:"Szukaj tytułu/tagu…",
+          value:query,
+          onFocus:()=>setShowSearch(true),
+          onBlur:()=>setTimeout(()=>setShowSearch(false),200),
+          onChange:e=>setQuery(e.target.value)
+        }),
+
+        showSearch && query && e("div",{className:"searchBox"},
+          filtered.map(s=>e("div",{
+            key:s.id,
+            className:"searchItem",
+            onClick:()=>{setActive(s);setView("series");setShowSearch(false);}
+          },"📖 "+s.title))
+        ),
+
         user
           ?e("button",{onClick:()=>setUser(null)},"Wyloguj")
           :e("button",{onClick:()=>setView("login")},"Login"),
-        e("button",{onClick:()=>setView("admin")},"Dodaj manhwę")
+
+        user?.admin && e("button",{onClick:()=>setView("admin")},"Administracja")
       ),
+
       e("div",{className:"subbar"},
         TAGS.map(t=>e("span",{key:t,className:"tag",onClick:()=>setQuery(t)},t))
-      ),
-      menu && e("div",{className:"card"},
-        series.map(s=>e("div",{key:s.id,style:{cursor:"pointer"},
-          onClick:()=>{setActive(s);setView("series");setMenu(false);}},s.title))
       )
     ),
 
+    // VIEWS
     e("div",{style:{padding:12}},
       view==="home" && e(Home,{series:filtered,open:s=>{setActive(s);setView("series");},user,toggleLibrary}),
-      view==="series" && active && e(Series,{data:active,user,setSeries}),
-      view==="admin" && e(Admin,{add:s=>setSeries([...series,s])}),
+      view==="series" && active && e(Series,{data:active,setReader,user,setSeries}),
+      view==="admin" && user?.admin && e(Admin,{add:s=>setSeries([...series,s])}),
       view==="login" && e(Login,{setUser})
+    ),
+
+    // BATOTO READER
+    reader && e("div",{className:"overlay",onClick:()=>setReader(null)},
+      e("div",{className:"reader",onClick:e=>e.stopPropagation()},
+        e("button",{onClick:()=>setReader(null)},"Zamknij czytnik"),
+        reader.images.map((img,i)=>e("img",{key:i,src:img,loading:"lazy"}))
+      )
     )
   );
 }
@@ -99,24 +133,22 @@ function App(){
 function Home({series,open,user,toggleLibrary}){
   return e("div",{className:"grid"},
     series.map(s=>{
-      const inLib=user?.library?.includes(s.id);
+      const saved=user?.library?.includes(s.id);
       return e("div",{key:s.id,className:"card"},
         s.cover && e("img",{src:s.cover,className:"cover"}),
-        e("b",{onClick:()=>open(s),style:{cursor:"pointer"}},s.title),
+        e("b",{style:{cursor:"pointer"},onClick:()=>open(s)},s.title),
         e("div",null,s.tags.map(t=>e("span",{key:t,className:"tag"},t))),
-        user && e("button",{onClick:()=>toggleLibrary(s.id)},
-          inLib?"Usuń z biblioteki":"Dodaj do biblioteki")
+        user && e("button",{onClick:()=>toggleLibrary(s.id)},saved?"✓ W bibliotece":"＋ Dodaj do biblioteki")
       );
     })
   );
 }
 
 // ===== SERIES =====
-function Series({data,user,setSeries}){
+function Series({data,setReader,user,setSeries}){
   const [ctitle,setCtitle]=React.useState("");
   const [cimages,setCimages]=React.useState([]);
-  const [openChap,setOpenChap]=React.useState(null);
-  const [comment,setComment]=React.useState("");
+  const [comment,setComment]=React.useState({});
 
   function upload(e){
     const files=[...e.target.files];
@@ -128,23 +160,32 @@ function Series({data,user,setSeries}){
   }
 
   function addChapter(){
-    if(!ctitle) return;
-    const ch={id:uid(),title:ctitle,images:cimages,comments:[]};
+    if(!user?.admin||!ctitle) return;
+    const ch={id:uid(),title:ctitle,images:cimages,comments:[],rating:0};
     const updated={...data,chapters:[...(data.chapters||[]),ch]};
     setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
-    setCtitle(""); setCimages([]);
+    setCtitle("");setCimages([]);
   }
 
   function addComment(id){
-    if(!user||!comment) return;
+    const text=comment[id];
+    if(!user||!text) return;
     const updated={
       ...data,
       chapters:data.chapters.map(c=>c.id===id
-        ?{...c,comments:[...c.comments,{user:user.name,text:comment}]}
+        ?{...c,comments:[...c.comments,{user:user.name,text}]}
         :c)
     };
     setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
-    setComment("");
+    setComment({...comment,[id]:""});
+  }
+
+  function rate(id){
+    const updated={
+      ...data,
+      chapters:data.chapters.map(c=>c.id===id?{...c,rating:c.rating+1}:c)
+    };
+    setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
   }
 
   return e("div",null,
@@ -154,7 +195,7 @@ function Series({data,user,setSeries}){
       e("p",null,data.description)
     ),
 
-    e("div",{className:"card"},
+    user?.admin && e("div",{className:"card"},
       e("h3",null,"Dodaj rozdział"),
       e("input",{placeholder:"Tytuł",value:ctitle,onChange:e=>setCtitle(e.target.value)}),
       e("input",{type:"file",multiple:true,accept:"image/*",onChange:upload}),
@@ -162,22 +203,19 @@ function Series({data,user,setSeries}){
     ),
 
     (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
-      e("div",{className:"chapter",onClick:()=>setOpenChap(openChap===ch.id?null:ch.id)},
-        ch.title
-      ),
+      e("div",{className:"chapter",onClick:()=>setReader(ch)},"📖 "+ch.title),
+      e("button",{onClick:()=>rate(ch.id)},"⭐ "+ch.rating),
 
-      openChap===ch.id && e("div",null,
-        e("div",{className:"reader"},
-          ch.images.map((img,i)=>e("img",{key:i,src:img}))
-        ),
+      e("h4",null,"Komentarze"),
+      ch.comments.map((c,i)=>e("div",{key:i},e("b",null,c.user+": "),c.text)),
 
-        e("h4",null,"Komentarze"),
-        ch.comments.map((c,i)=>e("div",{key:i},e("b",null,c.user+": "),c.text)),
-
-        user && e("div",null,
-          e("input",{placeholder:"Komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),
-          e("button",{onClick:()=>addComment(ch.id)},"Dodaj")
-        )
+      user && e("div",null,
+        e("input",{
+          placeholder:"Dodaj komentarz…",
+          value:comment[ch.id]||"",
+          onChange:e=>setComment({...comment,[ch.id]:e.target.value})
+        }),
+        e("button",{onClick:()=>addComment(ch.id)},"Dodaj")
       )
     ))
   );
@@ -193,7 +231,6 @@ function Admin({add}){
 
   function upload(e){
     const f=e.target.files[0];
-    if(!f) return;
     const r=new FileReader();
     r.onload=()=>setCover(r.result);
     r.readAsDataURL(f);
@@ -202,16 +239,14 @@ function Admin({add}){
   function create(){
     if(!title) return;
     add({id:uid(),title,description:desc,type,tags,cover,chapters:[]});
-    setTitle(""); setDesc(""); setTags([]); setCover(null);
+    setTitle("");setDesc("");setTags([]);setCover(null);
   }
 
   return e("div",{className:"card"},
-    e("h3",null,"Dodaj manhwę"),
+    e("h3",null,"Dodaj tytuł"),
     e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
     e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
-    e("select",{value:type,onChange:e=>setType(e.target.value)},
-      TYPES.map(t=>e("option",{key:t},t))
-    ),
+    e("select",{value:type,onChange:e=>setType(e.target.value)},TYPES.map(t=>e("option",{key:t},t))),
     e("input",{type:"file",accept:"image/*",onChange:upload}),
     e("div",null,
       TAGS.map(t=>e("span",{key:t,className:"tag",
@@ -227,15 +262,17 @@ function Admin({add}){
 function Login({setUser}){
   const [name,setName]=React.useState("");
   const [mail,setMail]=React.useState("");
+  const [pass,setPass]=React.useState("");
 
   function login(){
     if(!name||!mail) return;
-    setUser({name,mail,library:[]});
+    setUser({name,mail,admin:pass===ADMIN_PASS,library:[]});
   }
 
   return e("div",{className:"card"},
     e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
     e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
+    e("input",{placeholder:"Hasło admina",type:"password",value:pass,onChange:e=>setPass(e.target.value)}),
     e("button",{onClick:login},"Wejdź")
   );
 }
