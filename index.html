@@ -11,7 +11,6 @@
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
 header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10}
-.subbar{background:#1a0033;padding:6px;border-top:1px solid #5b21b6}
 input,textarea,select{width:100%;background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin-bottom:6px}
 button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
 button:hover{background:#7c3aed}
@@ -26,6 +25,9 @@ button:hover{background:#7c3aed}
 .reader img{width:100%;display:block;margin:0 auto 6px auto}
 .readerNav{display:flex;gap:8px;margin-left:auto}
 .searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px;max-height:300px;overflow:auto}
+.hero{margin-bottom:16px}
+.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #7c3aed}
+.smallAvatar{width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:6px}
 </style>
 </head>
 <body>
@@ -56,7 +58,10 @@ const uid=()=>Date.now()+Math.random();
 function App(){
 
 const [series,setSeries]=React.useState(load("series",[]));
+const [accounts,setAccounts]=React.useState(load("accounts",{}));
 const [user,setUser]=React.useState(load("user",null));
+const [history,setHistory]=React.useState(load("history",[]));
+
 const [view,setView]=React.useState("home");
 const [active,setActive]=React.useState(null);
 const [reader,setReader]=React.useState(null);
@@ -68,8 +73,10 @@ const [showSearch,setShowSearch]=React.useState(false);
 const [favorites,setFavorites]=React.useState(load("favorites",[]));
 
 React.useEffect(()=>save("series",series),[series]);
+React.useEffect(()=>save("accounts",accounts),[accounts]);
 React.useEffect(()=>save("user",user),[user]);
 React.useEffect(()=>save("favorites",favorites),[favorites]);
+React.useEffect(()=>save("history",history),[history]);
 
 // ===== FILTER =====
 const filtered=series.filter(s=>{
@@ -79,28 +86,57 @@ const filtered=series.filter(s=>{
  return matchText&&matchTags;
 });
 
+// ===== HERO =====
+const hero=React.useMemo(()=>{
+ const shuffled=[...series].sort(()=>Math.random()-0.5);
+ return shuffled.slice(0,5);
+},[series]);
+
+// ===== RANKING =====
+const ranking=[...series]
+ .map(s=>({
+  ...s,
+  score:(s.chapters||[]).reduce((a,c)=>a+(c.rating||0),0)
+ }))
+ .sort((a,b)=>b.score-a.score)
+ .slice(0,5);
+
 function toggleFav(id){
  setFavorites(favorites.includes(id)
   ?favorites.filter(f=>f!==id)
   :[...favorites,id]);
 }
 
+function addSeries(s){
+ if(user?.mail!==ADMIN_EMAIL) return;
+ setSeries([...series,s]);
+}
+
+function addHistory(entry){
+ setHistory(prev=>[
+  {id:uid(),...entry,time:Date.now()},
+  ...prev.slice(0,49)
+ ]);
+}
+
 return e("div",null,
 
- // HEADER
  e("header",null,
   e("div",{style:{display:"flex",gap:8,alignItems:"center"}},
 
    e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
 
    e("input",{
-    placeholder:"Szukaj tytułu…",
+    placeholder:"Szukaj…",
     value:query,
     onFocus:()=>setShowSearch(true),
     onChange:e=>setQuery(e.target.value)
    }),
 
+   user?.mail===ADMIN_EMAIL && e("button",{onClick:()=>setView("add")},"+ Dodaj tytuł"),
+
    e("button",{onClick:()=>setView("library")},"Biblioteka"),
+   e("button",{onClick:()=>setView("profile")},"Profil"),
 
    user
     ?e("button",{onClick:()=>setUser(null)},"Wyloguj")
@@ -125,38 +161,124 @@ return e("div",null,
   )
  ),
 
- // VIEWS
  e("div",{style:{padding:12}},
 
-  view==="home"&&e(Home,{series:filtered,open:s=>{setActive(s);setView("series");},favorites,toggleFav}),
+  view==="home"&&e(Home,{series:filtered,hero,ranking,open:s=>{setActive(s);setView("series");},favorites,toggleFav}),
 
-  view==="series"&&active&&e(Series,{data:active,setSeries,user,setReader}),
+  view==="series"&&active&&e(Series,{data:active,setSeries,user,setReader,addHistory}),
 
   view==="library"&&e(Library,{series,favorites,open:s=>{setActive(s);setView("series");}}),
 
-  view==="login"&&e(Login,{setUser})
+  view==="add"&&e(AddSeries,{add:addSeries}),
+
+  view==="login"&&e(Login,{accounts,setAccounts,setUser}),
+
+  view==="profile"&&e(Profile,{user,accounts,setAccounts,history})
  ),
 
- // READER
  reader&&e(Reader,{chapter:reader,onClose:()=>setReader(null)})
 );
 }
 
 // ===== HOME =====
-function Home({series,open,favorites,toggleFav}){
-return e("div",{className:"grid"},
-series.map(s=>e("div",{key:s.id,className:"card"},
- s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
- e("b",{onClick:()=>open(s),style:{cursor:"pointer"}},s.title),
- e("div",null,
-  e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+function Home({series,hero,ranking,open,favorites,toggleFav}){
+return e("div",null,
+ e("div",{className:"hero"},
+  e("h3",null,"Losowe polecane"),
+  e("div",{className:"grid"},
+   hero.map(s=>e("div",{key:s.id,className:"card"},
+    s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+    e("b",{onClick:()=>open(s)},s.title)
+   ))
+  )
  ),
- e("div",null,s.tags.map(t=>e("span",{key:t,className:"tag"},t)))
-)));
+
+ e("h3",null,"Ranking serii"),
+ e("div",{className:"grid"},
+  ranking.map((s,i)=>e("div",{key:s.id,className:"card"},
+   e("b",null,`#${i+1} ${s.title}`)
+  ))
+ ),
+
+ e("div",{className:"grid"},
+  series.map(s=>e("div",{key:s.id,className:"card"},
+   s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
+   e("b",{onClick:()=>open(s)},s.title),
+   e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆"),
+   e("div",null,s.tags.map(t=>e("span",{key:t,className:"tag"},t)))
+  ))
+ )
+);
+}
+
+// ===== PROFILE =====
+function Profile({user,accounts,setAccounts,history}){
+if(!user) return e("div",{className:"card"},"Zaloguj się.");
+
+const acc=accounts[user.mail]||{};
+const [avatar,setAvatar]=React.useState(acc.avatar||null);
+
+function upload(e){
+ const r=new FileReader();
+ r.onload=()=>{
+  const updated={...accounts,[user.mail]:{...acc,avatar:r.result,password:acc.password}};
+  setAccounts(updated);
+  setAvatar(r.result);
+ };
+ r.readAsDataURL(e.target.files[0]);
+}
+
+return e("div",null,
+ e("div",{className:"card"},
+  avatar&&e("img",{src:avatar,className:"avatar"}),
+  e("h3",null,user.name),
+  e("input",{type:"file",accept:"image/*",onChange:upload})
+ ),
+
+ e("div",{className:"card"},
+  e("h3",null,"Historia czytania"),
+  history.filter(h=>h.user===user.mail).map(h=>
+   e("div",{key:h.id},`${h.series} — ${h.chapter}`)
+  )
+ )
+);
+}
+
+// ===== ADD SERIES =====
+function AddSeries({add}){
+const [title,setTitle]=React.useState("");
+const [desc,setDesc]=React.useState("");
+const [tags,setTags]=React.useState([]);
+const [cover,setCover]=React.useState(null);
+
+function upload(e){
+ const r=new FileReader();
+ r.onload=()=>setCover(r.result);
+ r.readAsDataURL(e.target.files[0]);
+}
+
+function create(){
+ if(!title)return;
+ add({id:uid(),title,description:desc,tags,cover,chapters:[]});
+ setTitle("");setDesc("");setTags([]);setCover(null);
+}
+
+return e("div",{className:"card"},
+ e("h3",null,"Dodaj serię"),
+ e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
+ e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
+ e("input",{type:"file",accept:"image/*",onChange:upload}),
+ e("div",null,TAGS.map(t=>e("span",{
+  key:t,className:"tag",
+  style:{background:tags.includes(t)?"#9333ea":"#3b0764"},
+  onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])
+ },t))),
+ e("button",{onClick:create},"Dodaj")
+);
 }
 
 // ===== SERIES =====
-function Series({data,setSeries,user,setReader}){
+function Series({data,setSeries,user,setReader,addHistory}){
 const [ctitle,setCtitle]=React.useState("");
 const [cimages,setCimages]=React.useState([]);
 const [comment,setComment]=React.useState("");
@@ -174,10 +296,17 @@ function upload(e){
 
 function addChapter(){
  if(!isAdmin||!ctitle)return;
- const ch={id:uid(),title:ctitle,images:cimages,comments:[]};
+ const ch={id:uid(),title:ctitle,images:cimages,comments:[],rating:0};
  const updated={...data,chapters:[...(data.chapters||[]),ch]};
  setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
  setCtitle("");setCimages([]);
+}
+
+function rate(id,val){
+ const updated={...data,
+  chapters:data.chapters.map(c=>c.id===id?{...c,rating:val}:c)
+ };
+ setSeries(prev=>prev.map(s=>s.id===data.id?updated:s));
 }
 
 function addComment(id){
@@ -206,7 +335,19 @@ return e("div",null,
  ),
 
  (data.chapters||[]).map((ch,i)=>e("div",{key:ch.id,className:"card"},
-  e("div",{className:"chapter",onClick:()=>setReader({...ch,index:i,all:data.chapters})},ch.title),
+  e("div",{className:"chapter",onClick:()=>{
+   setReader({...ch,index:i,all:data.chapters});
+   user&&addHistory({user:user.mail,series:data.title,chapter:ch.title});
+  }},ch.title),
+
+  e("div",null,
+   "Ocena: ",
+   [1,2,3,4,5].map(v=>e("span",{
+    key:v,
+    style:{cursor:"pointer",color:v<=ch.rating?"#facc15":"#555"},
+    onClick:()=>rate(ch.id,v)
+   },"★"))
+  ),
 
   e("h4",null,"Komentarze"),
   ch.comments.map((c,i)=>e("div",{key:i},e("b",null,c.user+": "),c.text)),
@@ -225,37 +366,16 @@ const favSeries=series.filter(s=>favorites.includes(s.id));
 return e("div",{className:"grid"},
  favSeries.map(s=>e("div",{key:s.id,className:"card"},
   s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>open(s)}),
-  e("b",{onClick:()=>open(s),style:{cursor:"pointer"}},s.title)
+  e("b",{onClick:()=>open(s)},s.title)
  )));
 }
 
-// ===== READER (Batoto-like navigation) =====
+// ===== READER =====
 function Reader({chapter,onClose}){
-const {all,index}=chapter;
-
-function nav(dir){
- const next=all[index+dir];
- if(next) window.dispatchEvent(new CustomEvent("openChapter",{detail:{...next,index:index+dir,all}}));
-}
-
-React.useEffect(()=>{
- const h=e=>onClose();
- window.addEventListener("keydown",ev=>{
-  if(ev.key==="Escape")onClose();
-  if(ev.key==="ArrowRight")nav(1);
-  if(ev.key==="ArrowLeft")nav(-1);
- });
- return ()=>window.removeEventListener("keydown",h);
-},[]);
-
 return e("div",{className:"readerOverlay"},
  e("div",{className:"readerBar"},
   e("button",{onClick:onClose},"← Zamknij"),
-  e("b",null,chapter.title),
-  e("div",{className:"readerNav"},
-   e("button",{onClick:()=>nav(-1)},"← Poprzedni"),
-   e("button",{onClick:()=>nav(1)},"Następny →")
-  )
+  e("b",null,chapter.title)
  ),
  e("div",{className:"reader"},
   chapter.images.map((img,i)=>e("img",{key:i,src:img,loading:"lazy"}))
@@ -264,12 +384,22 @@ return e("div",{className:"readerOverlay"},
 }
 
 // ===== LOGIN =====
-function Login({setUser}){
+function Login({accounts,setAccounts,setUser}){
 const [name,setName]=React.useState("");
 const [mail,setMail]=React.useState("");
+const [pass,setPass]=React.useState("");
 
 function login(){
- if(!name||!mail)return;
+ if(!name||!mail||!pass)return;
+ const acc=accounts[mail];
+
+ if(acc){
+  if(acc.password!==pass) return alert("Złe hasło");
+ }else{
+  accounts[mail]={name,password:pass,avatar:null};
+ }
+
+ setAccounts({...accounts});
  setUser({name,mail});
 }
 
@@ -277,6 +407,7 @@ return e("div",{className:"card"},
  e("h3",null,"Login / Rejestracja"),
  e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
  e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
+ e("input",{type:"password",placeholder:"Hasło",value:pass,onChange:e=>setPass(e.target.value)}),
  e("button",{onClick:login},"Wejdź")
 );
 }
