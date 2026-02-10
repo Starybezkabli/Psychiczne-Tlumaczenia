@@ -2,39 +2,41 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Psychiczne tłumaczenia — Mangago 1:1</title>
+<title>Psychiczne tłumaczenia — Ultimate Reader</title>
 
+
+<!-- React -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
+
 <style>
-/* ===== Mangago-like theme ===== */
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#111;color:#eee}
-header{background:#222;padding:8px;position:sticky;top:0;z-index:10;border-bottom:2px solid #444}
-.subbar{background:#1a1a1a;padding:6px;border-top:1px solid #333;max-height:120px;overflow:auto}
-input,textarea,select{width:100%;background:#1b1b1b;border:1px solid #444;color:#eee;padding:8px;border-radius:4px;margin-bottom:6px}
-button{background:#444;border:none;padding:8px 12px;border-radius:4px;color:white;cursor:pointer;margin:3px}
-button:hover{background:#666}
-.card{background:#1b1b1b;border:1px solid #333;padding:10px;border-radius:6px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-.tag{display:inline-block;background:#333;padding:4px 6px;border-radius:12px;margin:2px;font-size:11px;cursor:pointer}
-.tag.active{background:#666}
-.cover{width:100%;height:240px;object-fit:cover;border-radius:4px}
-.chapter{padding:8px;border:1px solid #333;border-radius:4px;margin-bottom:6px;cursor:pointer;background:#141414}
-.chapter:hover{background:#222}
-.overlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
-.readerTop{position:sticky;top:0;background:#111;padding:6px;border-bottom:1px solid #333;z-index:5}
-.reader img{width:100%;display:block;margin:auto;max-width:900px}
-.profileBox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
+header{background:#2e1065;padding:10px;position:sticky;top:0;z-index:10}
+.subbar{background:#1a0033;padding:6px;border-top:1px solid #5b21b6}
+input,textarea,select{width:100%;background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin-bottom:6px}
+button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
+button:hover{background:#7c3aed}
+.card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
+.cover{width:100%;height:260px;object-fit:cover;border-radius:8px}
+.chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
+.readerOverlay{position:fixed;inset:0;background:black;overflow:auto;z-index:100}
+.readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px}
+.reader img{width:100%;display:block;margin:auto}
+.searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px}
 </style>
 </head>
 <body>
 <div id="root"></div>
 
+
 <script>
 const e=React.createElement;
 
-// ===== TAGS (UNCHANGED — REQUIRED) =====
+
+// ===== TAGS — DO NOT REMOVE =====
 const TAGS=[
 "yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
 "wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici",
@@ -44,201 +46,69 @@ const TAGS=[
 "zemsta","klątwy"
 ];
 
+
 const TYPES=["manhwa","manga","manhua","novelka","webtoon","one shot"];
-const ADMIN_PASS="admin123";
+
 
 // ===== STORAGE =====
 const load=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const uid=()=>Date.now()+Math.random();
 
+
 // ===== APP =====
 function App(){
-  const [series,setSeries]=React.useState(load("series",[]));
-  const [user,setUser]=React.useState(load("user",null));
-  const [profiles,setProfiles]=React.useState(load("profiles",{}));
-  const [history,setHistory]=React.useState(load("history",{}));
-  const [view,setView]=React.useState("home");
-  const [active,setActive]=React.useState(null);
-  const [reader,setReader]=React.useState(null);
 
-  React.useEffect(()=>save("series",series),[series]);
-  React.useEffect(()=>save("user",user),[user]);
-  React.useEffect(()=>save("profiles",profiles),[profiles]);
-  React.useEffect(()=>save("history",history),[history]);
 
-  function openChapter(s,ch){
-    setReader({series:s,chapter:ch});
-    if(!user) return;
-    const list=history[user.name]||[];
-    history[user.name]=[
-      {title:s.title,chapter:ch.title,time:Date.now()},
-      ...list
-    ].slice(0,50);
-    setHistory({...history});
-  }
+const [series,setSeries]=React.useState(load("series",[]));
+const [user,setUser]=React.useState(load("user",null));
+const [view,setView]=React.useState("home");
+const [active,setActive]=React.useState(null);
+const [reader,setReader]=React.useState(null);
 
-  function importData(e){
-    const file=e.target.files[0];
-    if(!file) return;
-    const r=new FileReader();
-    r.onload=()=>{
-      const data=JSON.parse(r.result);
-      if(data.series) setSeries(data.series);
-      if(data.history) setHistory(data.history);
-      if(data.profiles) setProfiles(data.profiles);
-    };
-    r.readAsText(file);
-  }
 
-  return e("div",null,
+const [query,setQuery]=React.useState("");
+const [selectedTags,setSelectedTags]=React.useState([]);
+const [showSearch,setShowSearch]=React.useState(false);
 
-    e("header",null,
-      e("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
-        e("b",{style:{cursor:"pointer"},onClick:()=>setView("home")},"Psychiczne tłumaczenia"),
-        e("button",{onClick:()=>setView("profile")},"Profil"),
-        e("button",{onClick:()=>setView("stats")},"Statystyki"),
-        e("input",{type:"file",onChange:importData}),
-        user
-          ?e("button",{onClick:()=>setUser(null)},"Wyloguj")
-          :e("button",{onClick:()=>setView("login")},"Login"),
-        user?.admin && e("button",{onClick:()=>setView("admin")},"Admin")
-      ),
-      e("div",{className:"subbar"},
-        TAGS.map(t=>e("span",{key:t,className:"tag"},t))
-      )
-    ),
 
-    e("div",{style:{padding:12}},
-      view==="home" && e(Home,{series,open:s=>{setActive(s);setView("series");}}),
-      view==="series" && active && e(Series,{data:active,openChapter}),
-      view==="login" && e(Login,{setUser,profiles,setProfiles}),
-      view==="profile" && user && e(Profile,{user,profiles,history}),
-      view==="stats" && e(Stats,{history}),
-      view==="admin" && user?.admin && e(Admin,{add:s=>setSeries([...series,s])})
-    ),
+const [favorites,setFavorites]=React.useState(load("favorites",[]));
 
-    reader && e("div",{className:"overlay"},
-      e("div",{className:"reader"},
-        e("div",{className:"readerTop"},
-          e("button",{onClick:()=>setReader(null)},"← Zamknij"),
-          " ",reader.series.title," — ",reader.chapter.title
-        ),
-        reader.chapter.images.map((img,i)=>e("img",{key:i,src:img,loading:"lazy"}))
-      )
-    )
-  );
+
+React.useEffect(()=>save("series",series),[series]);
+React.useEffect(()=>save("user",user),[user]);
+React.useEffect(()=>save("favorites",favorites),[favorites]);
+
+
+// ===== FILTER =====
+const filtered=series.filter(s=>{
+const q=query.toLowerCase();
+const matchText=!q||s.title.toLowerCase().includes(q);
+const matchTags=!selectedTags.length||selectedTags.every(t=>s.tags.includes(t));
+return matchText&&matchTags;
+});
+
+
+function toggleFav(id){
+setFavorites(favorites.includes(id)
+?favorites.filter(f=>f!==id)
+:[...favorites,id]);
 }
 
-// ===== HOME =====
-function Home({series,open}){
-  return e("div",{className:"grid"},
-    series.map(s=>e("div",{key:s.id,className:"card"},
-      s.cover&&e("img",{src:s.cover,className:"cover"}),
-      e("b",{style:{cursor:"pointer"},onClick:()=>open(s)},s.title)
-    ))
-  );
-}
 
-// ===== SERIES =====
-function Series({data,openChapter}){
-  return e("div",null,
-    e("div",{className:"card"},
-      e("h2",null,data.title),
-      data.cover&&e("img",{src:data.cover,className:"cover"}),
-      e("p",null,data.description)
-    ),
-    (data.chapters||[]).map(ch=>e("div",{
-      key:ch.id,className:"chapter",
-      onClick:()=>openChapter(data,ch)
-    },ch.title))
-  );
-}
+return e("div",null,
 
-// ===== LOGIN / PROFILE SYSTEM =====
-function Login({setUser,profiles,setProfiles}){
-  const [name,setName]=React.useState("");
-  const [mail,setMail]=React.useState("");
-  const [pass,setPass]=React.useState("");
 
-  function login(){
-    if(!name||!mail) return;
-    profiles[name]={mail};
-    setProfiles({...profiles});
-    setUser({name,mail,admin:pass===ADMIN_PASS});
-  }
+// ===== HEADER =====
+e("header",null,
+e("div",{style:{display:"flex",gap:8}},
 
-  return e("div",{className:"card"},
-    e("input",{placeholder:"Nick",value:name,onChange:e=>setName(e.target.value)}),
-    e("input",{placeholder:"Email",value:mail,onChange:e=>setMail(e.target.value)}),
-    e("input",{type:"password",placeholder:"Hasło admina",value:pass,onChange:e=>setPass(e.target.value)}),
-    e("button",{onClick:login},"Zaloguj")
-  );
-}
 
-function Profile({user,profiles,history}){
-  const h=history[user.name]||[];
+e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null);}},"Psychiczne tłumaczenia"),
 
-  return e("div",{className:"card"},
-    e("h3",null,"Profil: "+user.name),
-    e("div",{className:"profileBox"},
-      e("div",null,
-        e("b",null,"Email:")," ",profiles[user.name]?.mail
-      ),
-      e("div",null,
-        e("b",null,"Przeczytane rozdziały:")," ",h.length
-      )
-    ),
-    e("h4",null,"Historia:"),
-    h.map((x,i)=>e("div",{key:i},x.title+" — "+x.chapter))
-  );
-}
 
-// ===== STATS =====
-function Stats({history}){
-  const total=Object.values(history).reduce((t,a)=>t+a.length,0);
-
-  return e("div",{className:"card"},
-    e("h3",null,"Statystyki użytkowników"),
-    e("div",null,"Łącznie przeczytanych rozdziałów: "+total)
-  );
-}
-
-// ===== ADMIN =====
-function Admin({add}){
-  const [title,setTitle]=React.useState("");
-  const [desc,setDesc]=React.useState("");
-  const [tags,setTags]=React.useState([]);
-  const [cover,setCover]=React.useState(null);
-
-  function upload(e){
-    const f=e.target.files[0];
-    const r=new FileReader();
-    r.onload=()=>setCover(r.result);
-    r.readAsDataURL(f);
-  }
-
-  function create(){
-    add({id:uid(),title,description:desc,tags,cover,chapters:[]});
-    setTitle("");setDesc("");setTags([]);setCover(null);
-  }
-
-  return e("div",{className:"card"},
-    e("h3",null,"Dodaj serię"),
-    e("input",{value:title,onChange:e=>setTitle(e.target.value)}),
-    e("textarea",{value:desc,onChange:e=>setDesc(e.target.value)}),
-    e("input",{type:"file",accept:"image/*",onChange:upload}),
-    e("div",null,
-      TAGS.map(t=>e("span",{
-        key:t,className:"tag "+(tags.includes(t)?"active":""),
-        onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])
-      },t))
-    ),
-    e("button",{onClick:create},"Dodaj")
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(e(App));
-</script>
-</body>
+e("input",{
+placeholder:"Szukaj tytułu…",
+value:query,
+onFocus:()=>setShowSearch(true),
 </html>
