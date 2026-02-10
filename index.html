@@ -3,12 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <title>Psychiczne tłumaczenia — Ultimate Reader+</title>
+
+<!-- React -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
+<!-- Firebase (non-module) -->
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"></script>
+
+<script>
+const e = React.createElement;
 
 // ---------------------- FIREBASE ----------------------
 const firebaseConfig = {
@@ -20,62 +26,64 @@ const firebaseConfig = {
   appId: "1:972303060927:web:3a7a84dd3cc8963bd25b0a",
   measurementId: "G-W04TWH51KD"
 };
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
 // ---------------------- HELPERS ----------------------
-const e = React.createElement;
 const TAGS = ["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
-const uid = ()=>Date.now()+Math.random();
-const seriesCol = collection(db,"series");
+const uid = () => Date.now() + Math.random();
+const seriesCol = db.collection("series");
 
-// Firestore helpers
-function listenSeries(cb){ onSnapshot(seriesCol,snap=>cb(snap.docs.map(d=>({id:d.id,...d.data()})))) }
-async function addSeriesFirebase(s){ await addDoc(seriesCol,s) }
-async function updateSeries(id,data){ await updateDoc(doc(db,"series",id),data) }
+function listenSeries(cb){
+  seriesCol.onSnapshot(snap => cb(snap.docs.map(d => ({id:d.id, ...d.data()}))));
+}
+async function addSeriesFirebase(s){ await seriesCol.add(s); }
+async function updateSeries(id, data){ await seriesCol.doc(id).update(data); }
 
 // ---------------------- APP ----------------------
-function App(){
-  const [series,setSeries]=React.useState([]);
-  const [user,setUser]=React.useState(null);
-  const [view,setView]=React.useState("home");
-  const [active,setActive]=React.useState(null);
-  const [reader,setReader]=React.useState(null);
-  const [query,setQuery]=React.useState("");
-  const [selectedTags,setSelectedTags]=React.useState([]);
-  const [favorites,setFavorites]=React.useState([]);
-  const [accounts,setAccounts]=React.useState({});
-  const [team,setTeam]=React.useState([]);
-  const [comments,setComments]=React.useState([]);
+function App() {
+  const [series,setSeries] = React.useState([]);
+  const [user,setUser] = React.useState(null);
+  const [view,setView] = React.useState("home");
+  const [active,setActive] = React.useState(null);
+  const [reader,setReader] = React.useState(null);
+  const [query,setQuery] = React.useState("");
+  const [selectedTags,setSelectedTags] = React.useState([]);
+  const [favorites,setFavorites] = React.useState([]);
+  const [accounts,setAccounts] = React.useState({});
+  const [team,setTeam] = React.useState([]);
+  const [comments,setComments] = React.useState([]);
 
   React.useEffect(()=>{
     listenSeries(setSeries);
-    onAuthStateChanged(auth,u=>setUser(u?{name:u.email,mail:u.email}:null));
+    auth.onAuthStateChanged(u => setUser(u ? {name:u.email, mail:u.email} : null));
   },[]);
 
   const topSeries = [...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
   const filtered = series.filter(s=>{
-    const q=query.toLowerCase();
-    const text=!q || s.title.toLowerCase().includes(q);
-    const tags=!selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
+    const q = query.toLowerCase();
+    const text = !q || s.title.toLowerCase().includes(q);
+    const tags = !selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
     return text && tags;
   });
 
   const isAdmin = user && accounts[user.mail]?.role==="admin";
   const isMod = user && accounts[user.mail]?.role==="mod";
 
-  function toggleFav(id){ setFavorites(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]); }
+  function toggleFav(id){
+    setFavorites(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev,id]);
+  }
 
   return e("div",null,
     e("header",null,
-      e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null)}},"Psychiczne tłumaczenia"),
-      e("input",{placeholder:"Szukaj…",value:query,onChange:e=>setQuery(e.target.value)}),
+      e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home"); setActive(null)}},"Psychiczne tłumaczenia"),
+      e("input",{placeholder:"Szukaj…", value:query, onChange:e=>setQuery(e.target.value)}),
       e("button",{onClick:()=>setView("library")},"Biblioteka"),
       e("button",{onClick:()=>setView("profile")},"Profil"),
-      user ? e("button",{onClick:()=>signOut(auth)},"Wyloguj")
+      user ? e("button",{onClick:()=>auth.signOut()},"Wyloguj")
            : e("button",{onClick:()=>setView("login")},"Login"),
-      e("div",{className:"searchPanel"},TAGS.map(t=>e("span",{key:t,className:"tag",
+      e("div",{className:"searchPanel"}, TAGS.map(t=>e("span",{key:t,className:"tag",
         style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
         onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
       },t)))
@@ -95,9 +103,9 @@ function App(){
 // -----------------------------------------
 // HOME
 function Home({series,topSeries,open,favorites,toggleFav,isAdmin,isMod,team,setTeam,comments,setComments}){
-  const [name,setName]=React.useState("");
-  const [img,setImg]=React.useState(null);
-  const [comment,setComment]=React.useState("");
+  const [name,setName] = React.useState("");
+  const [img,setImg] = React.useState(null);
+  const [comment,setComment] = React.useState("");
 
   function upload(e){ const r=new FileReader(); r.onload=()=>setImg(r.result); r.readAsDataURL(e.target.files[0]); }
   function addMember(){ if(!name||!img) return; setTeam([...team,{id:uid(),name,avatar:img}]); setName(""); setImg(null); }
@@ -145,9 +153,9 @@ function Home({series,topSeries,open,favorites,toggleFav,isAdmin,isMod,team,setT
 // -----------------------------------------
 // SERIES COMP
 function SeriesComp({data,setSeries,setReader,user,isAdmin,isMod,comments,setComments}){
-  const [comment,setComment]=React.useState("");
-  const [title,setTitle]=React.useState("");
-  const [images,setImages]=React.useState([]);
+  const [comment,setComment] = React.useState("");
+  const [title,setTitle] = React.useState("");
+  const [images,setImages] = React.useState([]);
 
   function upload(e){ 
     const files=[...e.target.files]; 
@@ -190,7 +198,7 @@ function SeriesComp({data,setSeries,setReader,user,isAdmin,isMod,comments,setCom
     ),
     (data.chapters||[]).map(ch=>e("div",{key:ch.id,className:"card"},
       e("div",{className:"chapter",onClick:()=>setReader(ch)},ch.title),
-      e("button",{onClick:()=>deleteChapter(ch.id)},"Usuń rozdział"),
+      (isAdmin||isMod) && e("button",{onClick:()=>deleteChapter(ch.id)},"Usuń rozdział"),
       e("div",null,ch.comments.map(c=>e("div",{key:c.text,className:"comment"},e("b",null,c.user+": "),c.text))),
       user && e("div",null,e("input",{placeholder:"Dodaj komentarz…",value:comment,onChange:e=>setComment(e.target.value)}),
         e("button",{onClick:()=>addCommentToChapter(ch)},"Dodaj"))
@@ -213,9 +221,9 @@ function LibraryComp({series,favorites,open}){
 // -----------------------------------------
 // ADD SERIES COMP
 function AddSeriesComp({add}){
-  const [title,setTitle]=React.useState("");
-  const [desc,setDesc]=React.useState("");
-  const [cover,setCover]=React.useState(null);
+  const [title,setTitle] = React.useState("");
+  const [desc,setDesc] = React.useState("");
+  const [cover,setCover] = React.useState(null);
 
   function upload(e){ const r=new FileReader(); r.onload=()=>setCover(r.result); r.readAsDataURL(e.target.files[0]); }
   function create(){ if(!title) return; add({id:uid(),title,description:desc,tags:[],cover,chapters:[],rating:0}); setTitle(""); setDesc(""); setCover(null); }
@@ -234,7 +242,7 @@ function AddSeriesComp({add}){
 function ProfileComp({user,accounts,setAccounts}){
   if(!user) return e("div",{className:"card"},"Zaloguj się.");
   const acc = accounts[user.mail]||{};
-  const [avatar,setAvatar]=React.useState(acc.avatar||null);
+  const [avatar,setAvatar] = React.useState(acc.avatar||null);
   function upload(e){ const r=new FileReader(); r.onload=()=>{ setAccounts({...accounts,[user.mail]:{...acc,avatar:r.result}}); setAvatar(r.result); }; r.readAsDataURL(e.target.files[0]); }
   return e("div",null,
     e("div",{className:"card"},
@@ -260,18 +268,18 @@ function ReaderComp({chapter,onClose}){
 // -----------------------------------------
 // LOGIN
 function LoginComp({accounts,setAccounts,setUser}){
-  const [name,setName]=React.useState("");
-  const [mail,setMail]=React.useState("");
-  const [pass,setPass]=React.useState("");
+  const [name,setName] = React.useState("");
+  const [mail,setMail] = React.useState("");
+  const [pass,setPass] = React.useState("");
 
   async function login(){ 
     if(!mail||!pass) return;
-    try{ const u = await signInWithEmailAndPassword(auth,mail,pass); setUser({name:u.user.email,mail:u.user.email}); } 
+    try{ const u = await auth.signInWithEmailAndPassword(mail,pass); setUser({name:u.user.email,mail:u.user.email}); } 
     catch(e){ alert("Błąd logowania"); } 
   }
   async function register(){ 
     if(!mail||!pass) return;
-    try{ const u = await createUserWithEmailAndPassword(auth,mail,pass); setAccounts({...accounts,[mail]:{name,name||mail,role:"user"}}); setUser({name:name||mail,mail}); } 
+    try{ const u = await auth.createUserWithEmailAndPassword(mail,pass); setAccounts({...accounts,[mail]:{name:name||mail,role:"user"}}); setUser({name:name||mail,mail}); } 
     catch(e){ alert("Błąd rejestracji"); } 
   }
 
@@ -287,6 +295,7 @@ function LoginComp({accounts,setAccounts,setUser}){
 // ------------------------- RENDER -------------------------
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 </script>
+
 <style>
 body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
 header{background:#2e1065;padding:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10;}
@@ -308,8 +317,8 @@ button:hover{background:#7c3aed}
 .comment{padding:4px 8px;border-left:2px solid #7c3aed;margin:4px 0}
 .teamMember{display:flex;align-items:center;margin:4px 0}
 </style>
+</head>
 <body>
 <div id="root"></div>
 </body>
 </html>
-
