@@ -8,11 +8,33 @@
 <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
+header{background:#2e1065;padding:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+input,textarea{background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin:4px 0;width:100%;box-sizing:border-box}
+button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
+button:hover{background:#7c3aed}
+.card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
+.cover{width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer}
+.chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
+.readerOverlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
+.readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.reader{max-width:900px;margin:auto}
+.reader img{width:100%;display:block;margin:0 auto 6px auto}
+.searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px;max-height:300px;overflow:auto}
+.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #7c3aed}
+.smallAvatar{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #7c3aed;margin-right:6px}
+.comment{padding:4px 8px;border-left:2px solid #7c3aed;margin:4px 0}
+.teamMember{display:flex;align-items:center;margin:4px 0}
+</style>
 </head>
 <body>
 <div id="root"></div>
-
 <script>
+const e = React.createElement;
+
 // ---------------------- FIREBASE ----------------------
 const firebaseConfig = {
   apiKey: "AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
@@ -26,17 +48,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const seriesCol = db.collection("series");
 
 // ---------------------- HELPERS ----------------------
-const e = React.createElement;
 const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
 const uid = ()=>Date.now()+Math.random();
 
 // ---------------------- FIRESTORE ----------------------
-const seriesCol = db.collection("series");
-function listenSeries(cb){
-  seriesCol.onSnapshot(snap=>cb(snap.docs.map(d=>({id:d.id,...d.data()}))));
-}
+function listenSeries(cb){ seriesCol.onSnapshot(snap=>cb(snap.docs.map(d=>({id:d.id,...d.data()})))); }
 function addSeriesFirebase(s){ return seriesCol.add(s); }
 function updateSeries(id,data){ return seriesCol.doc(id).update(data); }
 
@@ -96,6 +115,7 @@ function App(){
     reader && e(ReaderComp,{chapter:reader,onClose:()=>setReader(null)})
   );
 }
+
 
 // -----------------------------------------
 // HOME
@@ -292,28 +312,6 @@ function LoginComp({accounts,setAccounts,setUser}){
 // ------------------------- RENDER -------------------------
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 </script>
-
-<style>
-body{margin:0;font-family:system-ui,sans-serif;background:#0b0016;color:#e9d5ff}
-header{background:#2e1065;padding:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10;}
-input,textarea{background:#1a0033;border:1px solid #5b21b6;color:white;padding:8px;border-radius:6px;margin:4px 0;width:100%;box-sizing:border-box}
-button{background:#6d28d9;border:none;padding:8px 12px;border-radius:6px;color:white;cursor:pointer;margin:4px 0}
-button:hover{background:#7c3aed}
-.card{background:#1a0033;border:1px solid #5b21b6;padding:12px;border-radius:10px;margin:12px 0}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.tag{display:inline-block;background:#3b0764;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px;cursor:pointer}
-.cover{width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer}
-.chapter{padding:8px;border:1px solid #5b21b6;border-radius:6px;margin-bottom:6px;cursor:pointer}
-.readerOverlay{position:fixed;inset:0;background:#000;overflow:auto;z-index:100}
-.readerBar{position:sticky;top:0;background:#2e1065;padding:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.reader{max-width:900px;margin:auto}
-.reader img{width:100%;display:block;margin:0 auto 6px auto}
-.searchPanel{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin-top:6px;max-height:300px;overflow:auto}
-.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #7c3aed}
-.smallAvatar{width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #7c3aed;margin-right:6px}
-.comment{padding:4px 8px;border-left:2px solid #7c3aed;margin:4px 0}
-.teamMember{display:flex;align-items:center;margin:4px 0}
-</style>
 </body>
 </html>
 
