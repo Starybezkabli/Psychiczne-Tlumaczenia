@@ -2,26 +2,26 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>psychiczne tłumaczenia — PLATFORM ULTRA</title>
-
+<title>Psychiczne tłumaczenia — PLATFORM ULTRA</title>
 <script type="module">
-
+// ================= FIREBASE =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
 import {
-  getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-  signOut, updateProfile
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+  createUserWithEmailAndPassword, signOut, updateProfile
 } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, doc, updateDoc, setDoc, getDoc, onSnapshot, query,
-  where, increment, deleteDoc
+  getFirestore, collection, addDoc, doc, updateDoc, setDoc, getDoc,
+  onSnapshot, query, where, increment, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-storage.js";
 
 import React from "https://esm.sh/react@18";
 import ReactDOM from "https://esm.sh/react-dom@18/client";
 
 // ================= CONFIG =================
 const ADMIN_EMAIL = "valerii000vall@gmail.com";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
   authDomain: "psychicznetlumaczenia-34d74.firebaseapp.com",
@@ -42,239 +42,254 @@ const ratingsCol = collection(db, "ratings");
 const commentsCol = collection(db, "comments");
 const profilesCol = collection(db, "profiles");
 
-const TAGS = ["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","psychologiczne","szkolne","historyczne","slice of life","omegaverse","wojna","walki","drama","komedia","duchy","dzieci","dla dorosłych","gry wideo","zemsta"];
+// ================= TAGS =================
+const TAGS = [
+  "yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat",
+  "fantasy","wilkołaki","psychologiczne","szkolne","historyczne","slice of life","omegaverse","wojna",
+  "walki","drama","komedia","duchy","dzieci","dla dorosłych","gry wideo","zemsta"
+];
 
 const e = React.createElement;
 const uid = () => Date.now() + Math.random();
 
 // ================= UPLOAD =================
-async function uploadImages(files) {
-  const urls = [];
-  for (const f of files) {
-    const r = ref(storage, "uploads/" + uid());
-    await uploadBytes(r, f);
+async function uploadImages(files){
+  const urls=[];
+  for(const f of files){
+    const r=ref(storage,"uploads/"+uid());
+    await uploadBytes(r,f);
     urls.push(await getDownloadURL(r));
   }
   return urls;
 }
 
 // ================= APP =================
-function App() {
-  const [series, setSeries] = React.useState([]);
-  const [user, setUser] = React.useState(null);
-  const [view, setView] = React.useState("library");
-  const [active, setActive] = React.useState(null);
-  const [favorites, setFavorites] = React.useState([]);
-  const [search, setSearch] = React.useState("");
-  const [showTags, setShowTags] = React.useState(false);
-  const [activeTags, setActiveTags] = React.useState([]);
+function App(){
+  const [series,setSeries]=React.useState([]);
+  const [user,setUser]=React.useState(null);
+  const [view,setView]=React.useState("library");
+  const [active,setActive]=React.useState(null);
+  const [favorites,setFavorites]=React.useState([]);
+  const [search,setSearch]=React.useState("");
+  const [showTags,setShowTags]=React.useState(false);
+  const [activeTags,setActiveTags]=React.useState([]);
 
-  React.useEffect(() =>
-    onSnapshot(seriesCol, snap =>
-      setSeries(snap.docs.map(d => ({ id:d.id, ...d.data() })))
-    ), []);
+  React.useEffect(()=>onSnapshot(seriesCol,snap=>setSeries(snap.docs.map(d=>({id:d.id,...d.data()})))),[]);
 
-  React.useEffect(() =>
-    onAuthStateChanged(auth, async u => {
-      setUser(u);
-      if(!u) return;
-      const pRef = doc(db,"profiles",u.email);
-      const snap = await getDoc(pRef);
-      if(snap.exists()) setFavorites(snap.data().favorites || []);
-    }), []);
+  React.useEffect(()=>onAuthStateChanged(auth,async u=>{
+    setUser(u);
+    if(!u) return;
+    const pRef=doc(db,"profiles",u.email);
+    const snap=await getDoc(pRef);
+    if(snap.exists()) setFavorites(snap.data().favorites||[]);
+  }),[]);
 
-  React.useEffect(() => {
+  React.useEffect(()=>{
     if(!user) return;
     setDoc(doc(db,"profiles",user.email),{favorites},{merge:true});
   },[favorites]);
 
-  const admin = user?.email === ADMIN_EMAIL;
-  function toggleFav(id){ setFavorites(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]); }
-  const filtered = series.filter(s => {
-    const q = s.title?.toLowerCase().includes(search.toLowerCase());
-    const t = !activeTags.length || activeTags.every(tag=>s.tags?.includes(tag));
-    return q && t;
+  const admin=user?.email===ADMIN_EMAIL;
+
+  const filtered=series.filter(s=>{
+    const q=s.title?.toLowerCase().includes(search.toLowerCase());
+    const t=!activeTags.length||activeTags.every(tag=>s.tags?.includes(tag));
+    return q&&t;
   });
 
-  return e("div",{className:"app-container"},[
+  function toggleFav(id){
+    setFavorites(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);
+  }
+
+  return e("div",null,
     e(Header,{user,admin,setView,onLogin:loginFlow,onLogout:()=>signOut(auth)}),
-    view==="library" && e(LibraryView,{filtered,search,setSearch,showTags,setShowTags,activeTags,setActiveTags,favorites,toggleFav,open:setActive}),
-    view==="favorites" && e(LibraryView,{filtered:series.filter(s=>favorites.includes(s.id)),search,setSearch,showTags,setShowTags,activeTags,setActiveTags,favorites,toggleFav,open:setActive}),
-    active && e(TitlePage,{series:active,user,admin}),
-    admin && view==="add" && e(AddTitleCMS,{}),
-    view==="profile" && user && e(ProfileEditor,{user})
-  ]);
+    view==="library"&&e(LibraryView,{
+      filtered,search,setSearch,showTags,setShowTags,activeTags,setActiveTags,
+      favorites,toggleFav,open:setActive
+    }),
+    view==="favorites"&&e(LibraryView,{
+      filtered:series.filter(s=>favorites.includes(s.id)),search,setSearch,
+      showTags,setShowTags,activeTags,setActiveTags,favorites,toggleFav,open:setActive
+    }),
+    active&&e(TitlePage,{series:active,user,admin,setActive}),
+    admin&&view==="add"&&e(AddTitleModal,{setView}),
+    view==="profile"&&user&&e(ProfileEditor,{user})
+  );
 }
 
 // ================= HEADER =================
 function Header({user,admin,setView,onLogin,onLogout}){
-  return e("header",{className:"main-header"},[
-    e("div",{className:"logo"}, "psychiczne tłumaczenia"),
-    e("div",{className:"header-buttons"},[
-      e("button",{onClick:()=>setView("library")},"Biblioteka"),
-      e("button",{onClick:()=>setView("favorites")},"Ulubione"),
-      admin && e("button",{onClick:()=>setView("add")},"Dodaj tytuł"),
-      user && e("button",{onClick:()=>setView("profile")},"Profil"),
-      user ? e("button",{onClick:onLogout},"Wyloguj") : e("button",{onClick:onLogin},"Login / Rejestracja")
-    ])
-  ]);
+  return e("header",null,
+    e("b",null,"Psychiczne tłumaczenia"),
+    e("button",{onClick:()=>setView("library")},"Biblioteka"),
+    e("button",{onClick:()=>setView("favorites")},"Ulubione"),
+    admin&&e("button",{onClick:()=>setView("add")},"Dodaj tytuł"),
+    user&&e("button",{onClick:()=>setView("profile")},"Profil"),
+    user?e("button",{onClick:onLogout},"Wyloguj"):e("button",{onClick:onLogin},"Login / Rejestracja")
+  );
+}
+
+// ================= LOGIN =================
+function loginFlow(){
+  const mail=prompt("Email");
+  const pass=prompt("Hasło");
+  if(!mail||!pass) return;
+  signInWithEmailAndPassword(auth,mail,pass).catch(()=>createUserWithEmailAndPassword(auth,mail,pass));
 }
 
 // ================= LIBRARY =================
 function LibraryView({filtered,search,setSearch,showTags,setShowTags,activeTags,setActiveTags,favorites,toggleFav,open}){
-  return e("div",{className:"library-container"},[
-    e("input",{className:"search-input",placeholder:"Szukaj manhwy/mangi/manhua…",value:search,onFocus:()=>setShowTags(true),onChange:e=>setSearch(e.target.value)}),
-    showTags && e(TagSelector,{activeTags,setActiveTags}),
-    e("div",{className:"grid-container"}, filtered.map(s=>{
-      const rating = s.ratingCount?s.ratingTotal/s.ratingCount:0;
-      return e("div",{key:s.id,className:"grid-item",onClick:()=>open(s)},[
-        s.cover && e("img",{src:s.cover,className:"cover-img"}),
-        e("div",{className:"overlay"},[
-          e("h3",null,s.title),
+  return e("div",null,
+    e("input",{placeholder:"Szukaj manhwy/mangi/manhu...",value:search,
+      onFocus:()=>setShowTags(true),onChange:e=>setSearch(e.target.value)}),
+    showTags&&e(TagSelector,{activeTags,setActiveTags}),
+    e("div",{className:"grid"},
+      filtered.map(s=>{
+        const rating=s.ratingCount?s.ratingTotal/s.ratingCount:0;
+        return e("div",{key:s.id,className:"card"},
+          s.cover&&e("img",{src:s.cover,width:150}),
+          e("h3",{onClick:()=>open(s)},s.title),
           e("p",null,s.description),
           e("div",null,"⭐",rating.toFixed(1)),
-          e("button",{onClick:(e)=>{e.stopPropagation(); toggleFav(s.id);}},favorites.includes(s.id)?"★":"☆")
-        ])
-      ]);
-    }))
-  ]);
+          e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+        );
+      })
+    )
+  );
 }
 
 // ================= TAG SELECTOR =================
 function TagSelector({activeTags,setActiveTags}){
-  function toggle(tag){ setActiveTags(prev=>prev.includes(tag)?prev.filter(t=>t!==tag):[...prev,tag]); }
-  return e("div",{className:"tags-container"},TAGS.map(tag=>e("button",{key:tag,className:activeTags.includes(tag)?"active":"",onClick:()=>toggle(tag)},tag)));
+  function toggle(tag){
+    setActiveTags(prev=>prev.includes(tag)?prev.filter(t=>t!==tag):[...prev,tag]);
+  }
+  return e("div",{className:"tags"},TAGS.map(tag=>e("button",{key:tag,className:activeTags.includes(tag)?"active":"",onClick:()=>toggle(tag)},tag)));
 }
 
 // ================= TITLE PAGE =================
-function TitlePage({series,user,admin}){
-  const rating = series.ratingCount?series.ratingTotal/series.ratingCount:0;
-  async function rate(value){ if(!user) return alert("Zaloguj się"); await addDoc(ratingsCol,{user:user.email,seriesId:series.id,value}); await updateDoc(doc(db,"series",series.id),{ratingTotal:increment(value),ratingCount:increment(1)}); }
-  async function deleteTitle(){ if(!admin) return; if(confirm("Usuń tytuł?")){ await deleteDoc(doc(db,"series",series.id)); alert("Tytuł usunięty"); } }
-  return e("div",{className:"title-page"},[
+function TitlePage({series,user,admin,setActive}){
+  const rating=series.ratingCount?series.ratingTotal/series.ratingCount:0;
+  async function rate(value){
+    if(!user) return alert("Zaloguj się");
+    await addDoc(ratingsCol,{user:user.email,seriesId:series.id,value});
+    await updateDoc(doc(db,"series",series.id),{ratingTotal:increment(value),ratingCount:increment(1)});
+  }
+
+  async function deleteTitle(){
+    if(!confirm("Na pewno usunąć tytuł?")) return;
+    if(series.cover) await deleteObject(ref(storage,series.cover));
+    await deleteDoc(doc(db,"series",series.id));
+    setActive(null);
+  }
+
+  return e("div",{className:"card"},
     e("h1",null,series.title),
-    series.cover && e("img",{src:series.cover,className:"title-cover"}),
+    series.cover&&e("img",{src:series.cover,width:200}),
     e("p",null,series.description),
-    e("div",{className:"rating-section"},["⭐".repeat(Math.round(rating)), ` (${rating.toFixed(1)})`]),
-    e("div",{className:"rate-buttons"},[1,2,3,4,5].map(n=>e("button",{key:n,onClick:()=>rate(n)},n))),
+    e("div",null,"⭐",rating.toFixed(1)),
+    e("div",null,[1,2,3,4,5].map(n=>e("button",{key:n,onClick:()=>rate(n)},n))),
     e("h2",null,"Rozdziały"),
     (series.chapters||[]).map(ch=>e(ChapterCard,{key:ch.id,chapter:ch,user,admin,seriesId:series.id})),
-    admin && e(AddChapter,{series}),
-    admin && e("button",{className:"danger-button",onClick:deleteTitle},"Usuń tytuł")
-  ]);
+    admin&&e(AddChapterModal,{series}),
+    admin&&e("button",{onClick:deleteTitle},"Usuń tytuł")
+  );
 }
 
-// ================= ADD TITLE =================
-function AddTitleCMS(){
+// ================= ADD TITLE MODAL =================
+function AddTitleModal({setView}){
   const [title,setTitle]=React.useState("");
   const [desc,setDesc]=React.useState("");
   const [cover,setCover]=React.useState(null);
   const [tags,setTags]=React.useState([]);
+
   async function save(){
-    const coverUrl = cover ? (await uploadImages([cover]))[0] : null;
+    const coverUrl=cover?(await uploadImages([cover]))[0]:null;
     await addDoc(seriesCol,{title,description:desc,cover:coverUrl,tags,ratingTotal:0,ratingCount:0,chapters:[]});
     alert("Dodano tytuł");
-    setTitle(""); setDesc(""); setCover(null); setTags([]);
+    setView("library");
   }
-  return e("div",{className:"card"},[
+
+  return e("div",{className:"card"},
     e("h2",null,"Dodaj tytuł"),
     e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
     e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
     e("input",{type:"file",onChange:e=>setCover(e.target.files[0])}),
-    e(TagSelector,{activeTags:tags,setActiveTags:setTags}),
+    e("h4",null,"Tagi"),e(TagSelector,{activeTags:tags,setActiveTags:setTags}),
     e("button",{onClick:save},"Zapisz")
-  ]);
+  );
 }
 
-// ================= ADD CHAPTER =================
-function AddChapter({series}){
+// ================= ADD CHAPTER MODAL =================
+function AddChapterModal({series}){
   async function addChapter(){
-    const title = prompt("Nazwa rozdziału");
-    const input=document.createElement("input");
-    input.type="file"; input.multiple=true;
-    input.onchange=async()=>{
-      const urls = await uploadImages(input.files);
+    const title=prompt("Nazwa rozdziału");
+    if(!title) return;
+    const input=document.createElement("input"); input.type="file"; input.multiple=true;
+    input.onchange=async ()=>{
+      const urls=await uploadImages(input.files);
       const ch={id:uid(),title,images:urls};
       await updateDoc(doc(db,"series",series.id),{chapters:[...(series.chapters||[]),ch]});
     };
     input.click();
   }
-  return e("button",{className:"add-chapter-button",onClick:addChapter},"+ Dodaj rozdział");
+  return e("button",{onClick:addChapter},"+ Dodaj rozdział");
 }
 
-// ================= CHAPTER + COMMENTS =================
+// ================= CHAPTER CARD =================
 function ChapterCard({chapter,user,admin,seriesId}){
   const [comments,setComments]=React.useState([]);
-  const [page,setPage]=React.useState(0);
   React.useEffect(()=>{
     const q=query(commentsCol,where("chapter","==",chapter.id));
     return onSnapshot(q,snap=>setComments(snap.docs.map(d=>d.data())));
   },[]);
-  async function comment(){ if(!user) return alert("Zaloguj się"); const text=prompt("Komentarz"); if(!text) return; await addDoc(commentsCol,{chapter:chapter.id,user:user.email,text,time:Date.now()}); }
-  async function deleteChapter(){ if(!admin) return; if(confirm("Usuń rozdział?")){ const sDoc=doc(db,"series",seriesId); const sSnap=await getDoc(sDoc); if(sSnap.exists()){ const chapters=sSnap.data().chapters.filter(c=>c.id!==chapter.id); await updateDoc(sDoc,{chapters}); } } }
-  return e("div",{className:"chapter-card"},[
+
+  async function addComment(){
+    if(!user) return alert("Zaloguj się");
+    const text=prompt("Komentarz");
+    if(!text) return;
+    await addDoc(commentsCol,{chapter:chapter.id,user:user.email,text,time:Date.now()});
+  }
+
+  async function deleteChapter(){
+    if(!admin) return;
+    if(!confirm("Usuń rozdział?")) return;
+    await updateDoc(doc(db,"series",seriesId),{chapters:chapter.id?chapter.id:[]});
+  }
+
+  return e("div",{className:"card"},
     e("h4",null,chapter.title),
-    chapter.images && chapter.images.length>0 && e("div",{className:"chapter-images"},[
-      e("img",{src:chapter.images[page],className:"chapter-img"}),
-      chapter.images.length>1 && e("div",{className:"pager"},[
-        e("button",{onClick:()=>setPage(p=>Math.max(0,p-1))},"←"),
-        e("span",null,` ${page+1}/${chapter.images.length} `),
-        e("button",{onClick:()=>setPage(p=>Math.min(chapter.images.length-1,p+1))},"→")
-      ])
-    ]),
-    e("button",{onClick:comment},"Komentarz"),
-    comments.map((c,i)=>e("p",{key:i},e("b",null,c.user),": ",c.text)),
-    admin && e("button",{className:"danger-button",onClick:deleteChapter},"Usuń rozdział")
-  ]);
+    e("button",{onClick:addComment},"Komentarz"),
+    admin&&e("button",{onClick:deleteChapter},"Usuń rozdział"),
+    comments.map((c,i)=>e("p",{key:i},e("b",null,c.user),": ",c.text))
+  );
 }
 
 // ================= PROFILE =================
 function ProfileEditor({user}){
   const [name,setName]=React.useState(user.displayName||"");
-  async function save(){ await updateProfile(user,{displayName:name}); alert("Profil zapisany"); }
-  return e("div",{className:"card"},[
+  async function save(){await updateProfile(user,{displayName:name});alert("Profil zapisany");}
+  return e("div",{className:"card"},
     e("h2",null,"Profil użytkownika"),
-    user.photoURL && e("img",{src:user.photoURL,width:80,className:"avatar"}),
     e("input",{value:name,onChange:e=>setName(e.target.value)}),
     e("button",{onClick:save},"Zapisz")
-  ]);
+  );
 }
 
 // ================= RENDER =================
 ReactDOM.createRoot(document.body.appendChild(document.createElement("div"))).render(e(App));
-
 </script>
 
 <style>
-body{margin:0;background:#0b0016;color:#eee;font-family:'Segoe UI',sans-serif}
-.main-header{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#2e1065;flex-wrap:wrap}
-.logo{font-size:1.5em;font-weight:bold}
-.header-buttons button{margin:0 4px}
-button{cursor:pointer;border:none;padding:6px 12px;background:#6d28d9;color:#fff;border-radius:6px;transition:0.3s}
-button:hover{background:#9333ea}
-input,textarea{width:100%;margin:4px 0;padding:6px;border-radius:6px;background:#111;color:#fff;border:none}
-.library-container{padding:10px}
-.grid-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-.grid-item{position:relative;cursor:pointer;overflow:hidden;border-radius:8px;transition:0.3s}
-.grid-item img.cover-img{width:100%;height:250px;object-fit:cover;border-radius:8px}
-.grid-item .overlay{position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.75);color:#fff;padding:8px;opacity:0;transition:0.3s}
-.grid-item:hover .overlay{opacity:1}
-.tags-container{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.tags-container button{background:#111;padding:4px 8px;border-radius:4px}
-.tags-container button.active{background:#9333ea}
-.card{background:#1a0033;padding:12px;margin:10px;border-radius:8px;transition:0.3s;box-shadow:0 0 10px #000}
-.card:hover{box-shadow:0 0 20px #6d28d9}
-.title-page{padding:10px}
-.title-cover{width:200px;border-radius:8px;margin:6px 0}
-.rating-section{margin:6px 0;font-weight:bold}
-.rate-buttons button{margin:0 4px}
-.chapter-card{background:#2a0040;padding:8px;margin:6px 0;border-radius:6px}
-.chapter-img{width:100%;border-radius:6px;margin:6px 0}
-.pager{display:flex;justify-content:center;align-items:center;gap:6px;margin:4px 0}
-.add-chapter-button{margin-top:6px;background:#4a148c}
-.danger-button{background:#b91c1c}
-.danger-button:hover{background:#f87171}
-.avatar{border-radius:50%;margin:6px 0}
+body{margin:0;background:#0b0016;color:#eee;font-family:system-ui;}
+header{background:#2e1065;padding:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+button{background:#6d28d9;color:white;border:none;padding:6px;border-radius:6px;cursor:pointer;transition:0.2s;}
+button:hover{background:#9333ea;}
+.card{background:#1a0033;padding:10px;margin:10px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.5);}
+textarea,input{width:100%;margin:4px 0;background:#111;color:#fff;padding:6px;border-radius:6px;border:none;}
+.tags{padding:6px;display:flex;flex-wrap:wrap;gap:4px;}
+.active{background:#9333ea;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;}
+img{border-radius:8px;margin:6px 0;max-width:100%;}
 </style>
 </head>
 <body></body>
