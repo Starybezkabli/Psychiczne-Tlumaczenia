@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -25,9 +24,11 @@ window.db = getDatabase(app);
 window.dbRef = ref;
 window.dbSet = set;
 window.dbOn = onValue;
+window.firebaseReady = true;
 </script>
 
 <style>
+/* unchanged styles */
 body{margin:0;background:#0b0016;color:#e9d5ff;font-family:system-ui}
 header{background:#2e1065;padding:10px;display:flex;flex-wrap:wrap;gap:6px}
 .card{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin:10px 0}
@@ -45,19 +46,25 @@ input,textarea{width:100%;margin:4px 0;background:#14002a;color:white;border:1px
 <div id="root"></div>
 
 <script>
+/* ================= SAFE START ================= */
+
+function waitFirebase(cb){
+  if(window.firebaseReady) cb();
+  else setTimeout(()=>waitFirebase(cb),50);
+}
+
+waitFirebase(startApp);
+
+function startApp(){
+
 const e=React.createElement;
 const uid=()=>Date.now()+Math.random();
 
-const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy",
-"wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici",
-"szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory",
-"magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia",
-"duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze",
-"zemsta","klątwy"];
+const TAGS=[/* unchanged list */"yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
 
 const ADMIN={mail:"valerii000vall@gmail.com",pass:"pika6969",name:"StaryBezKabli"};
 
-//////////////////// FIREBASE HOOK ////////////////////
+/* ================= FIREBASE HOOK FIX ================= */
 
 function useDB(key,initial){
   const [data,setData]=React.useState(initial);
@@ -65,17 +72,18 @@ function useDB(key,initial){
   React.useEffect(()=>{
     const r=dbRef(db,key);
     dbOn(r,s=>setData(s.exists()?s.val():initial));
-  },[]);
+  },[key]);
 
   const save=v=>{
-    setData(v);
-    dbSet(dbRef(db,key),v);
+    const val=typeof v==="function"?v(data):v;
+    setData(val);
+    dbSet(dbRef(db,key),val);
   };
 
   return [data,save];
 }
 
-//////////////////// APP ////////////////////
+/* ================= APP ================= */
 
 function App(){
 
@@ -93,22 +101,19 @@ const [favorites,setFavorites]=React.useState([]);
 
 const isAdmin=user?.mail===ADMIN.mail;
 
-//////////////////// HELPERS ////////////////////
-
 function addHistory(entry){
-  setHistory([{id:uid(),...entry,time:Date.now()},...history.slice(0,50)]);
+  setHistory(prev=>[{id:uid(),...entry,time:Date.now()},...(prev||[]).slice(0,50)]);
 }
 
-//////////////////// HOME ////////////////////
+/* ================= HOME ================= */
 
 function Home(){
-
 return e("div",null,
 
 e("div",{className:"card"},
 e("h3",null,"Serie"),
 e("div",{className:"grid"},
-series.map(s=>
+(series||[]).map(s=>
 e("div",{key:s.id,className:"card"},
 s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>{setActive(s);setView("series")}}),
 e("b",{onClick:()=>{setActive(s);setView("series")}},s.title),
@@ -122,24 +127,46 @@ favorites.includes(s.id)?"★":"☆")
 
 e("div",{className:"card"},
 e("h3",null,"Komentarze globalne"),
-comments.map(c=>e("div",{key:c.id},c.user,": ",c.text)),
+(comments||[]).map(c=>e("div",{key:c.id},c.user,": ",c.text)),
 user&&e("button",{onClick:()=>{
 const t=prompt("Komentarz:");
 if(!t)return;
-setComments([{id:uid(),user:user.name,text:t},...comments]);
+setComments(prev=>[{id:uid(),user:user.name,text:t},...(prev||[])]);
 }},"Dodaj komentarz")),
 
 e("div",{className:"card"},
 e("h3",null,"Zespół"),
-team.map(m=>e("div",{key:m.id},m.name)))
+(team||[]).map(m=>e("div",{key:m.id},m.name)))
 );
 }
 
-//////////////////// SERIES ////////////////////
+/* ================= SERIES ================= */
 
 function SeriesView(){
+if(!active)return null;
 
-if(!active)return;
+function uploadImages(ch){
+  const input=document.createElement("input");
+  input.type="file";
+  input.multiple=true;
+
+  input.onchange=()=>{
+    const files=[...input.files];
+    Promise.all(files.map(f=>{
+      return new Promise(res=>{
+        const r=new FileReader();
+        r.onload=()=>res(r.result);
+        r.readAsDataURL(f);
+      });
+    })).then(imgs=>{
+      ch.images=[...(ch.images||[]),...imgs];
+      const updated={...active};
+      setSeries(series.map(s=>s.id===active.id?updated:s));
+      setActive(updated);
+    });
+  };
+  input.click();
+}
 
 return e("div",null,
 
@@ -148,11 +175,14 @@ e("h2",null,active.title),
 e("p",null,active.description),
 
 (active.chapters||[]).map(ch=>
-e("button",{key:ch.id,onClick:()=>{
+e("div",{key:ch.id},
+e("button",{onClick:()=>{
 setReader(ch);
 user&&addHistory({user:user.mail,series:active.title,chapter:ch.title});
-}},ch.title)
-),
+}},ch.title),
+
+(isAdmin||user)&&e("button",{onClick:()=>uploadImages(ch)},"+ obrazy")
+)),
 
 (isAdmin||user)&&e("button",{onClick:()=>{
 const title=prompt("Tytuł rozdziału:");
@@ -160,14 +190,13 @@ if(!title)return;
 
 const ch={id:uid(),title,images:[]};
 const updated={...active,chapters:[...(active.chapters||[]),ch]};
-
 setSeries(series.map(s=>s.id===active.id?updated:s));
 setActive(updated);
 }},"Dodaj rozdział")
 ));
 }
 
-//////////////////// ADD SERIES ////////////////////
+/* ================= ADD SERIES ================= */
 
 function AddSeries(){
 
@@ -185,7 +214,7 @@ r.readAsDataURL(e.target.files[0]);
 function add(){
 if(!title)return;
 
-setSeries([...series,{
+setSeries(prev=>[...(prev||[]),{
 id:uid(),
 title,
 description:desc,
@@ -208,7 +237,7 @@ onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])
 e("button",{onClick:add},"Dodaj serię"));
 }
 
-//////////////////// LOGIN ////////////////////
+/* ================= LOGIN ================= */
 
 function Login(){
 
@@ -222,13 +251,13 @@ setUser({name:ADMIN.name,mail});
 return;
 }
 
-const acc=accounts[mail];
+const acc=accounts?.[mail];
 if(acc&&acc.pass===pass){
 setUser({name:acc.name,mail});
 return;
 }
 
-setAccounts({...accounts,[mail]:{name,pass}});
+setAccounts(prev=>({...prev,[mail]:{name,pass}}));
 setUser({name,mail});
 }
 
@@ -236,13 +265,12 @@ return e("div",{className:"card"},
 e("button",{onClick:go},"Login/Rejestracja"));
 }
 
-//////////////////// PROFILE ////////////////////
+/* ================= PROFILE ================= */
 
 function Profile(){
-
 if(!user)return e("div",{className:"card"},"Zaloguj się");
 
-const myHistory=history.filter(h=>h.user===user.mail);
+const myHistory=(history||[]).filter(h=>h.user===user.mail);
 
 return e("div",{className:"card"},
 e("h3",null,"Profil: ",user.name),
@@ -250,30 +278,27 @@ myHistory.map(h=>e("div",{key:h.id},
 h.series," — ",h.chapter)));
 }
 
-//////////////////// ADMIN ////////////////////
+/* ================= ADMIN ================= */
 
 function AdminPanel(){
-
 if(!isAdmin)return null;
 
 return e("div",{className:"card"},
 e("h3",null,"Panel Admin"),
-e("div",null,"Użytkownicy:",
-Object.entries(accounts).map(([mail,a])=>
-e("div",{key:mail},mail," — ",a.name)))
-);
+Object.entries(accounts||{}).map(([mail,a])=>
+e("div",{key:mail},mail," — ",a.name)));
 }
 
-//////////////////// READER ////////////////////
+/* ================= READER ================= */
 
 function Reader(){
 return e("div",{className:"readerOverlay"},
 e("button",{onClick:()=>setReader(null)},"Zamknij"),
 e("div",{className:"reader"},
-reader.images?.map((img,i)=>e("img",{key:i,src:img}))));
+(reader.images||[]).map((img,i)=>e("img",{key:i,src:img}))));
 }
 
-//////////////////// UI ////////////////////
+/* ================= UI ================= */
 
 return e("div",null,
 
@@ -297,6 +322,8 @@ reader&&e(Reader)
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+
+} // firebase wait end
 </script>
 </body>
 </html>
