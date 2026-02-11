@@ -4,50 +4,6 @@
 <meta charset="UTF-8">
 <title>psychiczne tłumaczenia — PLATFORM ULTRA</title>
 
-<!--
-====================================================================
-ULTRA EXPANDED PLATFORM — NON‑DESTRUCTIVE EXTENSION
-Everything previously built is preserved in spirit and expanded.
-Nothing removed — only layered additions.
-
-NEW SYSTEMS ADDED:
-✔ Global title rating system (visible to everyone)
-✔ Public chapters + titles (global sync Firestore)
-✔ Restored profile + user library layer
-✔ Favorites library view
-✔ Title detail page with ratings + chapters
-✔ Mini CMS manager
-✔ Chapter uploader (multi‑image)
-✔ Tag filtering (search/add only)
-✔ Comment system
-✔ User profile editor
-✔ Public catalog for manga/manhwa/manhua
-✔ Persistent favorites per user
-✔ Rating aggregation engine
-
-DATABASE STRUCTURE:
-series/{id}
-  title
-  description
-  cover
-  tags[]
-  ratingTotal
-  ratingCount
-  chapters[]
-
-ratings/{id}
-  user
-  seriesId
-  value
-
-comments/{id}
-
-profiles/{email}
-  favorites[]
-
-====================================================================
--->
-
 <script type="module">
 
 // ================= FIREBASE =================
@@ -72,7 +28,8 @@ import {
   onSnapshot,
   query,
   where,
-  increment
+  increment,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
 import {
@@ -108,7 +65,6 @@ const ratingsCol = collection(db, "ratings");
 const commentsCol = collection(db, "comments");
 const profilesCol = collection(db, "profiles");
 
-// ================= TAGS =================
 const TAGS = [
 "yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","psychologiczne","szkolne","historyczne","slice of life","omegaverse","wojna","walki","drama","komedia","duchy","dzieci","dla dorosłych","gry wideo","zemsta"
 ];
@@ -145,12 +101,11 @@ function App() {
       setSeries(snap.docs.map(d => ({ id:d.id, ...d.data() })))
     ), []);
 
-  // auth
+  // auth + profile
   React.useEffect(() =>
     onAuthStateChanged(auth, async u => {
       setUser(u);
       if(!u) return;
-
       const pRef = doc(db,"profiles",u.email);
       const snap = await getDoc(pRef);
       if(snap.exists()) setFavorites(snap.data().favorites || []);
@@ -159,13 +114,10 @@ function App() {
   // save favorites
   React.useEffect(() => {
     if(!user) return;
-    setDoc(doc(db,"profiles",user.email),{
-      favorites
-    },{merge:true});
+    setDoc(doc(db,"profiles",user.email),{favorites},{merge:true});
   },[favorites]);
 
   const admin = user?.email === ADMIN_EMAIL;
-  window.currentUserAdmin=admin;
 
   function toggleFav(id){
     setFavorites(f =>
@@ -182,17 +134,11 @@ function App() {
   });
 
   return e("div",null,
-
     e(Header,{user,admin,setView,onLogin:loginFlow,onLogout:()=>signOut(auth)}),
-
     view==="library" && e(LibraryView,{filtered,search,setSearch,showTags,setShowTags,activeTags,setActiveTags,favorites,toggleFav,open:setActive}),
-
     view==="favorites" && e(LibraryView,{filtered:series.filter(s=>favorites.includes(s.id)),search,setSearch,showTags,setShowTags,activeTags,setActiveTags,favorites,toggleFav,open:setActive}),
-
     active && e(TitlePage,{series:active,user,admin}),
-
     admin && view==="add" && e(AddTitleCMS,{}),
-
     view==="profile" && user && e(ProfileEditor,{user})
   );
 }
@@ -201,115 +147,53 @@ function App() {
 function Header({user,admin,setView,onLogin,onLogout}){
   return e("header",null,
     e("b",null,"psychiczne tłumaczenia"),
-
     e("button",{onClick:()=>setView("library")},"Biblioteka"),
     e("button",{onClick:()=>setView("favorites")},"Ulubione"),
     admin && e("button",{onClick:()=>setView("add")},"Dodaj tytuł"),
     user && e("button",{onClick:()=>setView("profile")},"Profil"),
-
     user
       ? e("button",{onClick:onLogout},"Wyloguj")
       : e("button",{onClick:onLogin},"Login / Rejestracja")
   );
 }
 
-// ================= LOGIN + REGISTER =================
-// Expanded auth flow with registration (email + password + display name + avatar)
+// ================= LOGIN/REGISTER =================
 function loginFlow(){
-  const mode = prompt("Wpisz: login / register");
-
-  if(mode === "register"){
-    const mail = prompt("Email");
-    const pass = prompt("Hasło");
-    const name = prompt("Nazwa użytkownika");
-
-    if(!mail||!pass||!name) return;
-
-    createUserWithEmailAndPassword(auth,mail,pass)
-      .then(async cred=>{
-        const avatarInput=document.createElement("input");
-        avatarInput.type="file";
-
-        avatarInput.onchange=async()=>{
-          let avatarUrl=null;
-          if(avatarInput.files[0]){
-            avatarUrl=(await uploadImages([avatarInput.files[0]]))[0];
-          }
-
-          await updateProfile(cred.user,{
-            displayName:name,
-            photoURL:avatarUrl
-          });
-
-          await setDoc(doc(db,"profiles",mail),{
-            favorites:[],
-            avatar:avatarUrl,
-            name
-          });
-
-          alert("Konto utworzone");
-        };
-
-        avatarInput.click();
-      })
-      .catch(e=>alert(e.message));
-
-  }else{
-    const mail = prompt("Email");
-    const pass = prompt("Hasło");
-    if(!mail||!pass) return;
-
-    signInWithEmailAndPassword(auth,mail,pass)
-      .catch(e=>alert(e.message));
-  }
-}
-
-// ================= ADMIN CMS EXTENSIONS =================
-async function adminDeleteTitle(id){
-  if(!confirm("Usunąć tytuł?")) return;
-  await updateDoc(doc(db,"series",id),{deleted:true});
-}
-
-async function adminDeleteChapter(series,chapterId){
-  const chapters=(series.chapters||[]).filter(c=>c.id!==chapterId);
-  await updateDoc(doc(db,"series",series.id),{chapters});
-}
-
-function loginFlow(){
-  const mail = prompt("Email");
-  const pass = prompt("Hasło");
-  if(!mail||!pass) return;
-
-  signInWithEmailAndPassword(auth,mail,pass)
-    .catch(()=>createUserWithEmailAndPassword(auth,mail,pass));
+  const name = prompt("Podaj nazwę użytkownika");
+  const mail = prompt("Podaj e-mail");
+  const pass = prompt("Podaj hasło");
+  if(!mail||!pass||!name) return alert("Wszystkie pola są wymagane");
+  const avatarFile = document.createElement("input");
+  avatarFile.type="file";
+  avatarFile.accept="image/*";
+  avatarFile.onchange=async()=>{
+    const avatarUrl = (await uploadImages(avatarFile.files))[0];
+    signInWithEmailAndPassword(auth,mail,pass).catch(()=>createUserWithEmailAndPassword(auth,mail,pass).then(u=>{
+      updateProfile(u.user,{displayName:name,photoURL:avatarUrl});
+    }));
+  };
+  avatarFile.click();
 }
 
 // ================= LIBRARY =================
 function LibraryView({filtered,search,setSearch,showTags,setShowTags,activeTags,setActiveTags,favorites,toggleFav,open}){
 
   return e("div",null,
-
     e("input",{
       placeholder:"Szukaj manhwy / mangi / manhu…",
       value:search,
       onFocus:()=>setShowTags(true),
       onChange:e=>setSearch(e.target.value)
     }),
-
     showTags && e(TagSelector,{activeTags,setActiveTags}),
-
-    filtered.filter(s=>!s.deleted).map(s=>{
-      const rating = s.ratingCount
-        ? (s.ratingTotal/s.ratingCount).toFixed(1)
-        : "0";
-
+    filtered.map(s=>{
+      const rating = s.ratingCount?s.ratingTotal/s.ratingCount:0;
       return e("div",{key:s.id,className:"card"},
         s.cover && e("img",{src:s.cover,width:120}),
         e("h3",{onClick:()=>open(s)},s.title),
         e("p",null,s.description),
-        e("div",null,"⭐",rating),
-        e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆"),
-        window.currentUserAdmin && e("button",{onClick:()=>adminDeleteTitle(s.id)},"🗑 Usuń")
+        e("div",null,"⭐",rating.toFixed(1)),
+        e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
       );
     })
   );
@@ -317,219 +201,156 @@ function LibraryView({filtered,search,setSearch,showTags,setShowTags,activeTags,
 
 // ================= TAG SELECTOR =================
 function TagSelector({activeTags,setActiveTags}){
-
-  function toggle(tag){
-    setActiveTags(prev=>
-      prev.includes(tag)
-        ? prev.filter(t=>t!==tag)
-        : [...prev,tag]
-    );
-  }
-
-  return e("div",{className:"tags"},
-    TAGS.map(tag=>
-      e("button",{
-        key:tag,
-        className:activeTags.includes(tag)?"active":"",
-        onClick:()=>toggle(tag)
-      },tag)
-    )
-  );
+  function toggle(tag){setActiveTags(prev=>prev.includes(tag)?prev.filter(t=>t!==tag):[...prev,tag]);}
+  return e("div",{className:"tags"},TAGS.map(tag=>e("button",{key:tag,className:activeTags.includes(tag)?"active":"",onClick:()=>toggle(tag)},tag)));
 }
 
 // ================= TITLE PAGE =================
 function TitlePage({series,user,admin}){
 
-  const rating = series.ratingCount
-    ? (series.ratingTotal/series.ratingCount).toFixed(1)
-    : "0";
+  const rating = series.ratingCount?series.ratingTotal/series.ratingCount:0;
 
   async function rate(value){
     if(!user) return alert("Zaloguj się");
+    await addDoc(ratingsCol,{user:user.email,seriesId:series.id,value});
+    await updateDoc(doc(db,"series",series.id),{ratingTotal:increment(value),ratingCount:increment(1)});
+  }
 
-    await addDoc(ratingsCol,{
-      user:user.email,
-      seriesId:series.id,
-      value
-    });
-
-    await updateDoc(doc(db,"series",series.id),{
-      ratingTotal:increment(value),
-      ratingCount:increment(1)
-    });
+  async function deleteTitle(){
+    if(!admin) return;
+    if(confirm("Usuń ten tytuł?")){
+      await deleteDoc(doc(db,"series",series.id));
+      alert("Tytuł usunięty");
+    }
   }
 
   return e("div",{className:"card"},
-
     e("h1",null,series.title),
     series.cover && e("img",{src:series.cover,width:200}),
     e("p",null,series.description),
-
-    e("h3",null,"Ocena: ⭐",rating),
-
-    e("div",null,
-      [1,2,3,4,5].map(n=>
-        e("button",{key:n,onClick:()=>rate(n)},n)
-      )
-    ),
-
+    e("div",null,"Ocena: ⭐",rating.toFixed(1)),
+    e("div",null,[1,2,3,4,5].map(n=>e("button",{key:n,onClick:()=>rate(n)},n))),
     e("h2",null,"Rozdziały"),
-
-    (series.chapters||[]).map(ch=>
-      e(ChapterCard,{key:ch.id,chapter:ch,user})
-    ),
-
-    admin && e(AddChapter,{series})
+    (series.chapters||[]).map(ch=>e(ChapterCard,{key:ch.id,chapter:ch,user,admin,seriesId:series.id})),
+    admin && e(AddChapter,{series}),
+    admin && e("button",{onClick:deleteTitle},"Usuń tytuł")
   );
 }
 
 // ================= ADD TITLE =================
 function AddTitleCMS(){
-
   const [title,setTitle]=React.useState("");
   const [desc,setDesc]=React.useState("");
   const [cover,setCover]=React.useState(null);
   const [tags,setTags]=React.useState([]);
-
   async function save(){
-    const coverUrl = cover
-      ? (await uploadImages([cover]))[0]
-      : null;
-
+    const coverUrl = cover ? (await uploadImages([cover]))[0] : null;
     await addDoc(seriesCol,{
-      title,
-      description:desc,
-      cover:coverUrl,
-      tags,
-      ratingTotal:0,
-      ratingCount:0,
-      chapters:[]
+      title,description:desc,cover:coverUrl,tags,ratingTotal:0,ratingCount:0,chapters:[]
     });
-
     alert("Dodano tytuł");
+    setTitle("");setDesc("");setCover(null);setTags([]);
   }
-
   return e("div",{className:"card"},
-
-    e("h2",null,"Mini CMS — Dodaj tytuł"),
-
+    e("h2",null,"Dodaj tytuł"),
     e("input",{placeholder:"Tytuł",value:title,onChange:e=>setTitle(e.target.value)}),
-
     e("textarea",{placeholder:"Opis",value:desc,onChange:e=>setDesc(e.target.value)}),
-
     e("input",{type:"file",onChange:e=>setCover(e.target.files[0])}),
-
-    e("h4",null,"Tagi"),
     e(TagSelector,{activeTags:tags,setActiveTags:setTags}),
-
     e("button",{onClick:save},"Zapisz")
   );
 }
 
 // ================= ADD CHAPTER =================
 function AddChapter({series}){
-
   async function addChapter(){
-
     const title = prompt("Nazwa rozdziału");
-
     const input=document.createElement("input");
-    input.type="file";
-    input.multiple=true;
-
+    input.type="file"; input.multiple=true;
     input.onchange=async()=>{
-
       const urls=await uploadImages(input.files);
-
-      const ch={
-        id:uid(),
-        title,
-        images:urls
-      };
-
-      await updateDoc(doc(db,"series",series.id),{
-        chapters:[...(series.chapters||[]),ch]
-      });
+      const ch={id:uid(),title,images:urls};
+      await updateDoc(doc(db,"series",series.id),{chapters:[...(series.chapters||[]),ch]});
     };
-
     input.click();
   }
-
   return e("button",{onClick:addChapter},"+ Dodaj rozdział");
 }
 
 // ================= CHAPTER + COMMENTS =================
-function ChapterCard({chapter,user,series,admin}){
-
+function ChapterCard({chapter,user,admin,seriesId}){
   const [comments,setComments]=React.useState([]);
-
+  const [page,setPage]=React.useState(0);
   React.useEffect(()=>{
     const q=query(commentsCol,where("chapter","==",chapter.id));
-    return onSnapshot(q,snap=>
-      setComments(snap.docs.map(d=>d.data()))
-    );
+    return onSnapshot(q,snap=>setComments(snap.docs.map(d=>d.data())));
   },[]);
-
   async function comment(){
     if(!user) return alert("Zaloguj się");
-
     const text=prompt("Komentarz");
     if(!text) return;
-
-    await addDoc(commentsCol,{
-      chapter:chapter.id,
-      user:user.email,
-      text,
-      time:Date.now()
-    });
+    await addDoc(commentsCol,{chapter:chapter.id,user:user.email,text,time:Date.now()});
   }
-
+  async function deleteChapter(){
+    if(!admin) return;
+    if(confirm("Usuń rozdział?")){
+      const sDoc=doc(db,"series",seriesId);
+      const sSnap=await getDoc(sDoc);
+      if(sSnap.exists()){
+        const chapters = sSnap.data().chapters.filter(c=>c.id!==chapter.id);
+        await updateDoc(sDoc,{chapters});
+      }
+    }
+  }
   return e("div",{className:"card"},
-
     e("h4",null,chapter.title),
+    chapter.images && chapter.images.length>0 && e("div",{style:{textAlign:"center"}},
+      e("img",{src:chapter.images[page],width:250}),
+      chapter.images.length>1 && e("div",null,
+        e("button",{onClick:()=>setPage(p=>Math.max(0,p-1))},"←"),
+        e("span",null,` ${page+1}/${chapter.images.length} `),
+        e("button",{onClick:()=>setPage(p=>Math.min(chapter.images.length-1,p+1))},"→")
+      )
+    ),
     e("button",{onClick:comment},"Komentarz"),
-    admin && e("button",{onClick:()=>adminDeleteChapter(series,chapter.id)},"🗑 Usuń rozdział"),
-
-    comments.map((c,i)=>
-      e("p",{key:i},e("b",null,c.user),": ",c.text)
-    )
+    comments.map((c,i)=>e("p",{key:i},e("b",null,c.user),": ",c.text)),
+    admin && e("button",{onClick:deleteChapter},"Usuń rozdział")
   );
 }
 
 // ================= PROFILE =================
 function ProfileEditor({user}){
-
   const [name,setName]=React.useState(user.displayName||"");
-
   async function save(){
     await updateProfile(user,{displayName:name});
     alert("Profil zapisany");
   }
-
   return e("div",{className:"card"},
     e("h2",null,"Profil użytkownika"),
+    user.photoURL && e("img",{src:user.photoURL,width:80}),
     e("input",{value:name,onChange:e=>setName(e.target.value)}),
     e("button",{onClick:save},"Zapisz")
   );
 }
 
 // ================= RENDER =================
-ReactDOM.createRoot(
-  document.body.appendChild(document.createElement("div"))
-).render(e(App));
+ReactDOM.createRoot(document.body.appendChild(document.createElement("div"))).render(e(App));
 
 </script>
 
 <style>
 body{margin:0;background:#0b0016;color:#eee;font-family:system-ui}
 header{background:#2e1065;padding:10px;display:flex;gap:6px;flex-wrap:wrap}
-button{background:#6d28d9;color:white;border:none;padding:6px;border-radius:6px}
-.card{background:#1a0033;padding:10px;margin:10px;border-radius:8px}
-textarea,input{width:100%;margin:4px 0;background:#111;color:#fff}
-.tags{padding:6px}
+button{background:#6d28d9;color:white;border:none;padding:6px;border-radius:6px;cursor:pointer;transition:0.2s}
+button:hover{background:#9333ea}
+.card{background:#1a0033;padding:10px;margin:10px;border-radius:8px;transition:0.2s;overflow:hidden}
+.card:hover{box-shadow:0 0 20px #6d28d9}
+textarea,input{width:100%;margin:4px 0;background:#111;color:#fff;padding:6px;border-radius:6px}
+.tags{padding:6px;display:flex;flex-wrap:wrap;gap:4px}
 .active{background:#9333ea}
-img{border-radius:8px;margin:6px 0}
+img{border-radius:8px;margin:6px 0;display:block}
 </style>
 </head>
 <body></body>
 </html>
+
