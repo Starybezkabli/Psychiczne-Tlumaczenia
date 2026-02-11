@@ -3,19 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>Psychiczne tłumaczenia — Ultimate Reader+</title>
-
-<!-- React -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-<!-- Firebase (non-module) -->
 <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
 
 <script>
-const e = React.createElement;
-
 // ---------------------- FIREBASE ----------------------
 const firebaseConfig = {
   apiKey: "AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
@@ -27,63 +24,63 @@ const firebaseConfig = {
   measurementId: "G-W04TWH51KD"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 const auth = firebase.auth();
+const db = firebase.firestore();
 
 // ---------------------- HELPERS ----------------------
-const TAGS = ["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
-const uid = () => Date.now() + Math.random();
-const seriesCol = db.collection("series");
+const e = React.createElement;
+const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
+const uid = ()=>Date.now()+Math.random();
 
+// ---------------------- FIRESTORE ----------------------
+const seriesCol = db.collection("series");
 function listenSeries(cb){
-  seriesCol.onSnapshot(snap => cb(snap.docs.map(d => ({id:d.id, ...d.data()}))));
+  seriesCol.onSnapshot(snap=>cb(snap.docs.map(d=>({id:d.id,...d.data()}))));
 }
-async function addSeriesFirebase(s){ await seriesCol.add(s); }
-async function updateSeries(id, data){ await seriesCol.doc(id).update(data); }
+function addSeriesFirebase(s){ return seriesCol.add(s); }
+function updateSeries(id,data){ return seriesCol.doc(id).update(data); }
 
 // ---------------------- APP ----------------------
-function App() {
-  const [series,setSeries] = React.useState([]);
-  const [user,setUser] = React.useState(null);
-  const [view,setView] = React.useState("home");
-  const [active,setActive] = React.useState(null);
-  const [reader,setReader] = React.useState(null);
-  const [query,setQuery] = React.useState("");
-  const [selectedTags,setSelectedTags] = React.useState([]);
-  const [favorites,setFavorites] = React.useState([]);
-  const [accounts,setAccounts] = React.useState({});
-  const [team,setTeam] = React.useState([]);
-  const [comments,setComments] = React.useState([]);
+function App(){
+  const [series,setSeries]=React.useState([]);
+  const [user,setUser]=React.useState(null);
+  const [view,setView]=React.useState("home");
+  const [active,setActive]=React.useState(null);
+  const [reader,setReader]=React.useState(null);
+  const [query,setQuery]=React.useState("");
+  const [selectedTags,setSelectedTags]=React.useState([]);
+  const [favorites,setFavorites]=React.useState([]);
+  const [accounts,setAccounts]=React.useState({});
+  const [team,setTeam]=React.useState([]);
+  const [comments,setComments]=React.useState([]);
 
   React.useEffect(()=>{
     listenSeries(setSeries);
-    auth.onAuthStateChanged(u => setUser(u ? {name:u.email, mail:u.email} : null));
+    auth.onAuthStateChanged(u=>setUser(u?{name:u.email,mail:u.email}:null));
   },[]);
 
   const topSeries = [...series].sort((a,b)=>b.rating-(a.rating||0)).slice(0,5);
   const filtered = series.filter(s=>{
-    const q = query.toLowerCase();
-    const text = !q || s.title.toLowerCase().includes(q);
-    const tags = !selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
+    const q=query.toLowerCase();
+    const text=!q || s.title.toLowerCase().includes(q);
+    const tags=!selectedTags.length || selectedTags.every(t=>s.tags.includes(t));
     return text && tags;
   });
 
   const isAdmin = user && accounts[user.mail]?.role==="admin";
   const isMod = user && accounts[user.mail]?.role==="mod";
 
-  function toggleFav(id){
-    setFavorites(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev,id]);
-  }
+  function toggleFav(id){ setFavorites(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]); }
 
   return e("div",null,
     e("header",null,
-      e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home"); setActive(null)}},"Psychiczne tłumaczenia"),
-      e("input",{placeholder:"Szukaj…", value:query, onChange:e=>setQuery(e.target.value)}),
+      e("b",{style:{cursor:"pointer"},onClick:()=>{setView("home");setActive(null)}},"Psychiczne tłumaczenia"),
+      e("input",{placeholder:"Szukaj…",value:query,onChange:e=>setQuery(e.target.value)}),
       e("button",{onClick:()=>setView("library")},"Biblioteka"),
       e("button",{onClick:()=>setView("profile")},"Profil"),
       user ? e("button",{onClick:()=>auth.signOut()},"Wyloguj")
            : e("button",{onClick:()=>setView("login")},"Login"),
-      e("div",{className:"searchPanel"}, TAGS.map(t=>e("span",{key:t,className:"tag",
+      e("div",{className:"searchPanel"},TAGS.map(t=>e("span",{key:t,className:"tag",
         style:{background:selectedTags.includes(t)?"#9333ea":"#3b0764"},
         onClick:()=>setSelectedTags(selectedTags.includes(t)?selectedTags.filter(x=>x!==t):[...selectedTags,t])
       },t)))
@@ -317,8 +314,6 @@ button:hover{background:#7c3aed}
 .comment{padding:4px 8px;border-left:2px solid #7c3aed;margin:4px 0}
 .teamMember{display:flex;align-items:center;margin:4px 0}
 </style>
-</head>
-<body>
-<div id="root"></div>
 </body>
 </html>
+
