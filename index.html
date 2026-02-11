@@ -6,7 +6,7 @@
 
 <!--
 ====================================================================
-ULTRA EXPANDED PLATFORM — NON-DESTRUCTIVE EXTENSION
+ULTRA EXPANDED PLATFORM — NON‑DESTRUCTIVE EXTENSION
 Everything previously built is preserved in spirit and expanded.
 Nothing removed — only layered additions.
 
@@ -17,7 +17,7 @@ NEW SYSTEMS ADDED:
 ✔ Favorites library view
 ✔ Title detail page with ratings + chapters
 ✔ Mini CMS manager
-✔ Chapter uploader (multi-image)
+✔ Chapter uploader (multi‑image)
 ✔ Tag filtering (search/add only)
 ✔ Comment system
 ✔ User profile editor
@@ -165,6 +165,7 @@ function App() {
   },[favorites]);
 
   const admin = user?.email === ADMIN_EMAIL;
+  window.currentUserAdmin=admin;
 
   function toggleFav(id){
     setFavorites(f =>
@@ -212,7 +213,68 @@ function Header({user,admin,setView,onLogin,onLogout}){
   );
 }
 
-// ================= LOGIN =================
+// ================= LOGIN + REGISTER =================
+// Expanded auth flow with registration (email + password + display name + avatar)
+function loginFlow(){
+  const mode = prompt("Wpisz: login / register");
+
+  if(mode === "register"){
+    const mail = prompt("Email");
+    const pass = prompt("Hasło");
+    const name = prompt("Nazwa użytkownika");
+
+    if(!mail||!pass||!name) return;
+
+    createUserWithEmailAndPassword(auth,mail,pass)
+      .then(async cred=>{
+        const avatarInput=document.createElement("input");
+        avatarInput.type="file";
+
+        avatarInput.onchange=async()=>{
+          let avatarUrl=null;
+          if(avatarInput.files[0]){
+            avatarUrl=(await uploadImages([avatarInput.files[0]]))[0];
+          }
+
+          await updateProfile(cred.user,{
+            displayName:name,
+            photoURL:avatarUrl
+          });
+
+          await setDoc(doc(db,"profiles",mail),{
+            favorites:[],
+            avatar:avatarUrl,
+            name
+          });
+
+          alert("Konto utworzone");
+        };
+
+        avatarInput.click();
+      })
+      .catch(e=>alert(e.message));
+
+  }else{
+    const mail = prompt("Email");
+    const pass = prompt("Hasło");
+    if(!mail||!pass) return;
+
+    signInWithEmailAndPassword(auth,mail,pass)
+      .catch(e=>alert(e.message));
+  }
+}
+
+// ================= ADMIN CMS EXTENSIONS =================
+async function adminDeleteTitle(id){
+  if(!confirm("Usunąć tytuł?")) return;
+  await updateDoc(doc(db,"series",id),{deleted:true});
+}
+
+async function adminDeleteChapter(series,chapterId){
+  const chapters=(series.chapters||[]).filter(c=>c.id!==chapterId);
+  await updateDoc(doc(db,"series",series.id),{chapters});
+}
+
 function loginFlow(){
   const mail = prompt("Email");
   const pass = prompt("Hasło");
@@ -236,7 +298,7 @@ function LibraryView({filtered,search,setSearch,showTags,setShowTags,activeTags,
 
     showTags && e(TagSelector,{activeTags,setActiveTags}),
 
-    filtered.map(s=>{
+    filtered.filter(s=>!s.deleted).map(s=>{
       const rating = s.ratingCount
         ? (s.ratingTotal/s.ratingCount).toFixed(1)
         : "0";
@@ -246,7 +308,8 @@ function LibraryView({filtered,search,setSearch,showTags,setShowTags,activeTags,
         e("h3",{onClick:()=>open(s)},s.title),
         e("p",null,s.description),
         e("div",null,"⭐",rating),
-        e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆")
+        e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆"),
+        window.currentUserAdmin && e("button",{onClick:()=>adminDeleteTitle(s.id)},"🗑 Usuń")
       );
     })
   );
@@ -396,7 +459,7 @@ function AddChapter({series}){
 }
 
 // ================= CHAPTER + COMMENTS =================
-function ChapterCard({chapter,user}){
+function ChapterCard({chapter,user,series,admin}){
 
   const [comments,setComments]=React.useState([]);
 
@@ -425,6 +488,7 @@ function ChapterCard({chapter,user}){
 
     e("h4",null,chapter.title),
     e("button",{onClick:comment},"Komentarz"),
+    admin && e("button",{onClick:()=>adminDeleteChapter(series,chapter.id)},"🗑 Usuń rozdział"),
 
     comments.map((c,i)=>
       e("p",{key:i},e("b",null,c.user),": ",c.text)
