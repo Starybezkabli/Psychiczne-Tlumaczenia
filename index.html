@@ -64,10 +64,12 @@ const uid=()=>Date.now()+Math.random();
 
 const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
 
-const ADMIN={mail:ADMIN_EMAIL,pass:"pika6969",name:"StaryBezKabli"};
+const ADMIN={mail:valerii000vall@gmail.com,pass:"pika6969",name:"StaryBezKabli"};
 
+/* ===== GENERIC FIREBASE HOOK ===== */
 function useDB(key,initial){
   const [data,setData]=React.useState(initial);
+
   React.useEffect(()=>{
     const r=dbRef(db,key);
     dbOn(r,s=>setData(s.exists()?s.val():initial));
@@ -78,16 +80,21 @@ function useDB(key,initial){
     setData(val);
     dbSet(dbRef(db,key),val);
   };
+
   return [data,save];
 }
 
 function App(){
 
-const [series,setSeries]=useDB("series",[]);
+/* ===== GLOBAL SHARED DATA (FIREBASE SYNC) ===== */
+const [series,setSeries]=useDB("series",[]); // titles + chapters
 const [accounts,setAccounts]=useDB("accounts",{});
 const [team,setTeam]=useDB("team",[]);
 const [comments,setComments]=useDB("comments",[]);
 const [history,setHistory]=useDB("history",[]);
+
+/* ===== USER-SPECIFIC LIBRARY (FIREBASE) ===== */
+const [libraries,setLibraries]=useDB("libraries",{});
 
 const [user,setUser]=React.useState(null);
 const [view,setView]=React.useState("home");
@@ -99,11 +106,28 @@ const [tagFilter,setTagFilter]=React.useState(null);
 
 const isAdmin=user?.mail===ADMIN.mail;
 
+/* ===== LOAD USER LIBRARY ===== */
+React.useEffect(()=>{
+  if(!user) return;
+  const fav=libraries?.[user.mail]||[];
+  setFavorites(fav);
+},[user,libraries]);
+
+/* ===== SAVE USER LIBRARY ===== */
+function saveFavorites(list){
+  if(!user) return;
+  setFavorites(list);
+  setLibraries(prev=>({
+    ...(prev||{}),
+    [user.mail]:list
+  }));
+}
+
 function addHistory(entry){
   setHistory(prev=>[{id:uid(),...entry,time:Date.now()},...(prev||[]).slice(0,50)]);
 }
 
-/* ===== ADMIN UNIVERSAL DELETE (ADD ONLY) ===== */
+/* ===== ADMIN DELETE (GLOBAL FIREBASE) ===== */
 function deleteSeries(id){
   if(!isAdmin) return;
   setSeries(prev=>(prev||[]).filter(s=>s.id!==id));
@@ -124,7 +148,7 @@ function addTeamMember(){
   setTeam(prev=>[...(prev||[]),{id:uid(),name}]);
 }
 
-/* ===== LIBRARY ===== */
+/* ===== LIBRARY VIEW ===== */
 function Library(){
   const fav=(series||[]).filter(s=>favorites.includes(s.id));
   return e("div",{className:"card"},
@@ -137,7 +161,7 @@ function Library(){
   );
 }
 
-/* ===== SEARCH + TAGS ===== */
+/* ===== SEARCH ===== */
 function SearchPanel(){
   return e("div",{className:"card"},
     e("h3",null,"Wyszukiwarka"),
@@ -163,7 +187,7 @@ function filterSeries(){
   });
 }
 
-/* ===== PROFILE EDIT ===== */
+/* ===== PROFILE ===== */
 function editProfile(){
   if(!user) return;
   const name=prompt("Nowy nick:",user.name);
@@ -187,9 +211,11 @@ return e("div",null,
  s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>{setActive(s);setView("series")}}),
  e("b",{onClick:()=>{setActive(s);setView("series")}},s.title),
  e("button",{onClick:()=>{
- setFavorites(favorites.includes(s.id)?
- favorites.filter(f=>f!==s.id):
- [...favorites,s.id])}},favorites.includes(s.id)?"★":"☆"),
+ const updated=favorites.includes(s.id)
+ ? favorites.filter(f=>f!==s.id)
+ : [...favorites,s.id];
+ saveFavorites(updated);
+ }},favorites.includes(s.id)?"★":"☆"),
  isAdmin&&e("button",{onClick:()=>deleteSeries(s.id)},"Usuń")
  )))),
 
