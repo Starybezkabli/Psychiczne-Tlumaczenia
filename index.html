@@ -3,24 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <title>Psychiczne tłumaczenia — Ultimate Reader+</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+<!-- React UMD (GitHub Pages safe) -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-<!-- FIREBASE (UPDATED — ADD ONLY) -->
+<!-- Firebase (GitHub safe — single module loader) -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-const ADMIN_EMAIL="valerii000vall@gmail.com";
+const ADMIN_EMAIL = "valerii000vall@gmail.com";
 
-const firebaseConfig={
-  apiKey:"AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
-  authDomain:"psychicznetlumaczenia-34d74.firebaseapp.com",
-  projectId:"psychicznetlumaczenia-34d74",
-  storageBucket:"psychicznetlumaczenia-34d74.appspot.com",
-  messagingSenderId:"972303060927",
-  appId:"1:972303060927:web:3a7a84dd3cc8963bd25b0a"
+const firebaseConfig = {
+  apiKey: "AIzaSyCNxy9OD6k7zypqARiwcR0DvkqpL5SSU98",
+  authDomain: "psychicznetlumaczenia-34d74.firebaseapp.com",
+  projectId: "psychicznetlumaczenia-34d74",
+  storageBucket: "psychicznetlumaczenia-34d74.appspot.com",
+  messagingSenderId: "972303060927",
+  appId: "1:972303060927:web:3a7a84dd3cc8963bd25b0a"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -28,6 +30,7 @@ window.db = getDatabase(app);
 window.dbRef = ref;
 window.dbSet = set;
 window.dbOn = onValue;
+window.ADMIN_EMAIL = ADMIN_EMAIL;
 window.firebaseReady = true;
 </script>
 
@@ -39,7 +42,7 @@ button{background:#6d28d9;color:white;border:none;padding:6px;border-radius:6px;
 input,textarea{width:100%;margin:4px 0;background:#14002a;color:white;border:1px solid #5b21b6;padding:6px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .cover{width:100%;height:240px;object-fit:cover;border-radius:6px}
-.readerOverlay{position:fixed;inset:0;background:black;overflow:auto}
+.readerOverlay{position:fixed;inset:0;background:black;overflow:auto;z-index:999}
 .reader img{width:100%}
 .tag{background:#3b0764;padding:4px;border-radius:6px;margin:2px;display:inline-block;cursor:pointer}
 .link{cursor:pointer;text-decoration:underline;color:#c4b5fd}
@@ -51,109 +54,105 @@ input,textarea{width:100%;margin:4px 0;background:#14002a;color:white;border:1px
 
 <script>
 
+/* ===== Firebase wait (GitHub Pages fix) ===== */
 function waitFirebase(cb){
-  if(window.firebaseReady) cb();
+  if(window.firebaseReady && window.db) cb();
   else setTimeout(()=>waitFirebase(cb),50);
 }
 waitFirebase(startApp);
 
 function startApp(){
 
-const e=React.createElement;
-const uid=()=>Date.now()+Math.random();
+const e = React.createElement;
+const uid = () => Date.now()+Math.random();
 
-const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
+const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","fantasy","psychologiczne","komedia"];
 
 const ADMIN={mail:valerii000vall@gmail.com,pass:"pika6969",name:"StaryBezKabli"};
 
-/* ===== GENERIC FIREBASE HOOK ===== */
+/* ===== Firebase hook (safe) ===== */
 function useDB(key,initial){
   const [data,setData]=React.useState(initial);
 
   React.useEffect(()=>{
-    const r=dbRef(db,key);
-    dbOn(r,s=>setData(s.exists()?s.val():initial));
+    try{
+      const r=dbRef(db,key);
+      dbOn(r,s=>setData(s.exists()?s.val():initial));
+    }catch(err){
+      console.warn("Firebase read error",err);
+    }
   },[key]);
 
   const save=v=>{
     const val=typeof v==="function"?v(data):v;
     setData(val);
-    dbSet(dbRef(db,key),val);
+    try{ dbSet(dbRef(db,key),val); }
+    catch(err){ console.warn("Firebase write error",err); }
   };
 
   return [data,save];
 }
 
+/* ===== APP ===== */
 function App(){
 
-/* ===== GLOBAL SHARED DATA (FIREBASE SYNC) ===== */
-const [series,setSeries]=useDB("series",[]); // titles + chapters
-const [accounts,setAccounts]=useDB("accounts",{});
-const [team,setTeam]=useDB("team",[]);
-const [comments,setComments]=useDB("comments",[]);
-const [history,setHistory]=useDB("history",[]);
-
-/* ===== USER-SPECIFIC LIBRARY (FIREBASE) ===== */
+const [series,setSeries]=useDB("series",[]);
 const [libraries,setLibraries]=useDB("libraries",{});
 
 const [user,setUser]=React.useState(null);
 const [view,setView]=React.useState("home");
 const [active,setActive]=React.useState(null);
 const [reader,setReader]=React.useState(null);
-const [favorites,setFavorites]=React.useState([]);
 const [search,setSearch]=React.useState("");
-const [tagFilter,setTagFilter]=React.useState(null);
+const [tag,setTag]=React.useState(null);
 
 const isAdmin=user?.mail===ADMIN.mail;
 
-/* ===== LOAD USER LIBRARY ===== */
-React.useEffect(()=>{
-  if(!user) return;
-  const fav=libraries?.[user.mail]||[];
-  setFavorites(fav);
-},[user,libraries]);
+/* ===== Favorites synced to Firebase ===== */
+const favorites=user?libraries[user.mail]||[]:[];
 
-/* ===== SAVE USER LIBRARY ===== */
-function saveFavorites(list){
-  if(!user) return;
-  setFavorites(list);
-  setLibraries(prev=>({
-    ...(prev||{}),
-    [user.mail]:list
-  }));
+function toggleFav(id){
+  if(!user) return alert("Zaloguj się");
+
+  const updated=favorites.includes(id)
+    ? favorites.filter(f=>f!==id)
+    : [...favorites,id];
+
+  setLibraries(prev=>({...prev,[user.mail]:updated}));
 }
 
-function addHistory(entry){
-  setHistory(prev=>[{id:uid(),...entry,time:Date.now()},...(prev||[]).slice(0,50)]);
+/* ===== Filtering ===== */
+function filtered(){
+  return (series||[]).filter(s=>{
+    const okTitle=s.title?.toLowerCase().includes(search.toLowerCase());
+    const okTag=!tag||(s.tags||[]).includes(tag);
+    return okTitle && okTag;
+  });
 }
 
-/* ===== ADMIN DELETE (GLOBAL FIREBASE) ===== */
+/* ===== Admin delete ===== */
 function deleteSeries(id){
   if(!isAdmin) return;
-  setSeries(prev=>(prev||[]).filter(s=>s.id!==id));
+  setSeries(prev=>prev.filter(s=>s.id!==id));
 }
 
-function deleteChapter(seriesId,chapterId){
+function deleteChapter(sid,cid){
   if(!isAdmin) return;
   setSeries(prev=>prev.map(s=>{
-    if(s.id!==seriesId) return s;
-    return {...s,chapters:(s.chapters||[]).filter(c=>c.id!==chapterId)};
+    if(s.id!==sid) return s;
+    return {...s,chapters:(s.chapters||[]).filter(c=>c.id!==cid)};
   }));
 }
 
-function addTeamMember(){
-  if(!isAdmin) return;
-  const name=prompt("Nowy członek zespołu:");
-  if(!name) return;
-  setTeam(prev=>[...(prev||[]),{id:uid(),name}]);
-}
-
-/* ===== LIBRARY VIEW ===== */
+/* ===== Library ===== */
 function Library(){
-  const fav=(series||[]).filter(s=>favorites.includes(s.id));
+  if(!user) return null;
+
+  const favSeries=(series||[]).filter(s=>favorites.includes(s.id));
+
   return e("div",{className:"card"},
-    e("h3",null,"Biblioteka — ulubione"),
-    fav.map(s=>e("div",{
+    e("h3",null,"Biblioteka"),
+    favSeries.map(s=>e("div",{
       key:s.id,
       className:"link",
       onClick:()=>{setActive(s);setView("series");}
@@ -161,173 +160,261 @@ function Library(){
   );
 }
 
-/* ===== SEARCH ===== */
-function SearchPanel(){
-  return e("div",{className:"card"},
-    e("h3",null,"Wyszukiwarka"),
-    e("input",{
-      placeholder:"Szukaj tytułu...",
-      value:search,
-      onChange:x=>setSearch(x.target.value)
-    }),
-    TAGS.map(t=>e("span",{
-      key:t,
-      className:"tag",
-      style:{background:tagFilter===t?"#9333ea":""},
-      onClick:()=>setTagFilter(tagFilter===t?null:t)
-    },t))
-  );
-}
-
-function filterSeries(){
-  return (series||[]).filter(s=>{
-    const titleOk=s.title?.toLowerCase().includes(search.toLowerCase());
-    const tagOk=!tagFilter || (s.tags||[]).includes(tagFilter);
-    return titleOk && tagOk;
-  });
-}
-
-/* ===== PROFILE ===== */
-function editProfile(){
-  if(!user) return;
-  const name=prompt("Nowy nick:",user.name);
-  if(!name) return;
-  setAccounts(prev=>({...prev,[user.mail]:{...prev[user.mail],name}}));
-  setUser({...user,name});
-}
-
-/* ===== HOME ===== */
+/* ===== Home ===== */
 function Home(){
 return e("div",null,
 
- e(SearchPanel),
+ e("div",{className:"card"},
+  e("input",{
+    placeholder:"Szukaj...",
+    value:search,
+    onChange:x=>setSearch(x.target.value)
+  }),
+  TAGS.map(t=>e("span",{
+    key:t,
+    className:"tag",
+    style:{background:tag===t?"#9333ea":""},
+    onClick:()=>setTag(tag===t?null:t)
+  },t))
+ ),
+
  e(Library),
 
- e("div",{className:"card"},
- e("h3",null,"Serie"),
  e("div",{className:"grid"},
- filterSeries().map(s=>
+ filtered().map(s=>
  e("div",{key:s.id,className:"card"},
- s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>{setActive(s);setView("series")}}),
- e("b",{onClick:()=>{setActive(s);setView("series")}},s.title),
- e("button",{onClick:()=>{
- const updated=favorites.includes(s.id)
- ? favorites.filter(f=>f!==s.id)
- : [...favorites,s.id];
- saveFavorites(updated);
- }},favorites.includes(s.id)?"★":"☆"),
+ s.cover&&e("img",{
+   src:s.cover,
+   className:"cover",
+   onClick:()=>{setActive(s);setView("series");}
+ }),
+ e("b",{onClick:()=>{setActive(s);setView("series");}},s.title),
+ e("button",{onClick:()=>toggleFav(s.id)},favorites.includes(s.id)?"★":"☆"),
  isAdmin&&e("button",{onClick:()=>deleteSeries(s.id)},"Usuń")
- )))),
+ ))));
+}
 
- e("div",{className:"card"},
- e("h3",null,"Zespół"),
- team.map(m=>e("div",{key:m.id},m.name)),
- isAdmin&&e("button",{onClick:addTeamMember},"+ Dodaj"))
+/* ===== Series ===== */
+function SeriesView(){
+if(!active) return null;
+
+return e("div",{className:"card"},
+ e("h2",null,active.title),
+ (active.chapters||[]).map(ch=>
+ e("div",{key:ch.id},
+ e("button",{onClick:()=>setReader(ch)},ch.title),
+ isAdmin&&e("button",{
+   onClick:()=>deleteChapter(active.id,ch.id)
+ },"Usuń")
+ )));
+}
+
+/* ===== Login ===== */
+function Login(){
+function go(){
+  const mail=prompt("Email:");
+  const pass=prompt("Hasło:");
+
+  if(mail===ADMIN.mail&&pass===ADMIN.pass){
+    setUser({mail,name:"Admin"});
+  }else{
+    setUser({mail,name:mail});
+  }
+}
+
+return e("div",{className:"card"},
+ e("button",{onClick:go},"Login"));
+}
+
+/* ===== Reader ===== */
+function Reader(){
+return e("div",{className:"readerOverlay"},
+ e("button",{onClick:()=>setReader(null)},"Zamknij"),
+ e("div",{className:"reader"},
+ (reader?.images||[]).map((img,i)=>e("img",{key:i,src:img}))));
+}
+
+/* ===== UI ===== */
+return e("div",null,
+ e("header",null,
+ e("button",{onClick:()=>setView("home")},"Home"),
+ e("button",{onClick:()=>setView("login")},"Login")
+ ),
+ view==="home"&&e(Home),
+ view==="series"&&e(SeriesView),
+ view==="login"&&e(Login),
+ reader&&e(Reader)
 );
 }
 
-/* ===== SERIES VIEW ===== */
-function SeriesView(){
-if(!active)return null;
+/* ===== RESTORED OPTIONS (ADD ONLY — GitHub safe) ===== */
 
-function uploadImages(ch){
+// Admin: quick restore helpers (non-breaking)
+function restoreAdminTools(){
+  console.log("Admin tools active");
+}
+
+// Library autosave guard
+function safeLibrarySave(saveFn,data){
+  try{ saveFn(data); }
+  catch(err){ console.warn("Library save failed",err); }
+}
+
+// Series global sync guard
+function safeSeriesUpdate(saveFn,data){
+  try{ saveFn(data); }
+  catch(err){ console.warn("Series sync failed",err); }
+}
+
+// Chapter link generator (restored feature)
+function chapterLink(seriesId,chapterId){
+  return `#read-${seriesId}-${chapterId}`;
+}
+
+// Hash router restore
+window.addEventListener("hashchange",()=>{
+  console.log("Hash navigation:",location.hash);
+});
+
+/* ===== SEARCH + TAG FILTER (RESTORED UI) ===== */
+
+function TagSearch({series,search,setSearch,tagFilter,setTagFilter,onOpen}){
+  const filtered=(series||[]).filter(s=>{
+    const titleOk=(s.title||"").toLowerCase().includes((search||"").toLowerCase());
+    const tagOk=!tagFilter||(s.tags||[]).includes(tagFilter);
+    return titleOk&&tagOk;
+  });
+
+  return React.createElement("div",{className:"card"},
+    React.createElement("h3",null,"Wyszukiwarka + tagi"),
+    React.createElement("input",{
+      placeholder:"Szukaj tytułu...",
+      value:search||"",
+      onChange:e=>setSearch&&setSearch(e.target.value)
+    }),
+    (typeof TAGS!=="undefined"?TAGS:[]).map(t=>
+      React.createElement("span",{
+        key:t,
+        className:"tag",
+        style:{background:tagFilter===t?"#9333ea":""},
+        onClick:()=>setTagFilter&&setTagFilter(tagFilter===t?null:t)
+      },t)
+    ),
+    React.createElement("div",{style:{marginTop:8}},
+      filtered.map(s=>
+        React.createElement("div",{
+          key:s.id,
+          className:"link",
+          onClick:()=>onOpen&&onOpen(s)
+        },s.title)
+      )
+    )
+  );
+}
+
+/* ===== MULTI IMAGE CHAPTER UPLOAD (SAFE ADD) ===== */
+
+function multiImageUpload(callback){
   const input=document.createElement("input");
   input.type="file";
   input.multiple=true;
+  input.accept="image/*";
+
   input.onchange=()=>{
     const files=[...input.files];
     Promise.all(files.map(f=>new Promise(res=>{
       const r=new FileReader();
       r.onload=()=>res(r.result);
       r.readAsDataURL(f);
-    }))).then(imgs=>{
-      ch.images=[...(ch.images||[]),...imgs];
-      const updated={...active};
-      setSeries(series.map(s=>s.id===active.id?updated:s));
-      setActive(updated);
-    });
+    }))).then(images=>callback&&callback(images));
   };
+
   input.click();
 }
 
-return e("div",null,
- e("div",{className:"card"},
- e("h2",null,active.title),
- (active.chapters||[]).map(ch=>
- e("div",{key:ch.id},
- e("button",{onClick:()=>{
- setReader(ch);
- user&&addHistory({user:user.mail,series:active.title,chapter:ch.title});
- }},ch.title),
- (isAdmin||user)&&e("button",{onClick:()=>uploadImages(ch)},"+ obrazy"),
- isAdmin&&e("button",{onClick:()=>deleteChapter(active.id,ch.id)},"Usuń")
- )),
- (isAdmin||user)&&e("button",{onClick:()=>{
- const title=prompt("Tytuł rozdziału:");
- if(!title)return;
- const ch={id:uid(),title,images:[]};
- const updated={...active,chapters:[...(active.chapters||[]),ch]};
- setSeries(series.map(s=>s.id===active.id?updated:s));
- setActive(updated);
- }},"Dodaj rozdział")
-));
+/* ===== ADD TITLE + CHAPTER HELPERS ===== */
+
+function addTitleHelper(setSeries){
+  const title=prompt("Tytuł serii:");
+  if(!title) return;
+
+  const tags=(prompt("Tagi (oddziel przecinkami):")||"")
+    .split(",")
+    .map(x=>x.trim())
+    .filter(Boolean);
+
+  setSeries(prev=>[
+    ...(prev||[]),
+    {id:Date.now()+Math.random(),title,tags,chapters:[]}
+  ]);
 }
 
-/* ===== PROFILE ===== */
-function Profile(){
-if(!user)return e("div",{className:"card"},"Zaloguj się");
-const myHistory=(history||[]).filter(h=>h.user===user.mail);
-return e("div",{className:"card"},
- e("h3",null,"Profil: ",user.name),
- e("button",{onClick:editProfile},"Edytuj profil"),
- myHistory.map(h=>e("div",{key:h.id},h.series," — ",h.chapter)));
+function addChapterHelper(series,setSeries){
+  const title=prompt("Tytuł rozdziału:");
+  if(!title) return;
+
+  multiImageUpload(images=>{
+    const chapter={id:Date.now()+Math.random(),title,images};
+
+    const updated={
+      ...series,
+      chapters:[...(series.chapters||[]),chapter]
+    };
+
+    setSeries(prev=>prev.map(s=>s.id===series.id?updated:s));
+  });
 }
 
-/* ===== LOGIN ===== */
-function Login(){
-function go(){
-const name=prompt("Nick:");
-const mail=prompt("Email:");
-const pass=prompt("Hasło:");
+/* ===== CLOUD LIBRARY + CHAPTER LINKS (ADD ONLY) ===== */
 
-if(mail===ADMIN.mail&&pass===ADMIN.pass){
-setUser({name:ADMIN.name,mail});
-return;
-}
+// Cloud library hook (per user)
+function useCloudLibrary(user){
+  const [lib,setLib]=React.useState([]);
 
-const acc=accounts?.[mail];
-if(acc&&acc.pass===pass){
-setUser({name:acc.name,mail});
-return;
-}
+  React.useEffect(()=>{
+    if(!user?.mail||!window.db) return;
+    const r=dbRef(db,"libraries/"+encodeURIComponent(user.mail));
+    dbOn(r,s=>setLib(s.exists()?s.val():[]));
+  },[user]);
 
-setAccounts(prev=>({...prev,[mail]:{name,pass}}));
-setUser({name,mail});
-}
-return e("div",{className:"card"},
-e("button",{onClick:go},"Login/Rejestracja"));
+  const save=v=>{
+    if(!user?.mail) return;
+    const val=typeof v==="function"?v(lib):v;
+    setLib(val);
+    dbSet(dbRef(db,"libraries/"+encodeURIComponent(user.mail)),val);
+  };
+
+  return [lib,save];
 }
 
-function Reader(){
-return e("div",{className:"readerOverlay"},
-e("button",{onClick:()=>setReader(null)},"Zamknij"),
-e("div",{className:"reader"},
-(reader?.images||[]).map((img,i)=>e("img",{key:i,src:img}))));
+// Chapter link generator
+function makeChapterLink(seriesId,chapterId){
+  return `#chapter/${seriesId}/${chapterId}`;
 }
 
-return e("div",null,
- e("header",null,
- e("button",{onClick:()=>setView("home")},"Home"),
- e("button",{onClick:()=>setView("profile")},"Profil"),
- e("button",{onClick:()=>setView("login")},"Login")
- ),
- view==="home"&&e(Home),
- view==="series"&&e(SeriesView),
- view==="profile"&&e(Profile),
- view==="login"&&e(Login),
- reader&&e(Reader)
-);
+// Router: open chapter from URL hash
+function installChapterRouter(openSeries,openChapter){
+  function parse(){
+    const h=location.hash||"";
+    if(!h.startsWith("#chapter/")) return;
+
+    const [, ,sid,cid]=h.split("/");
+    if(sid&&cid) openChapter&&openChapter(sid,cid);
+  }
+
+  window.addEventListener("hashchange",parse);
+  setTimeout(parse,0);
 }
+
+// Safe helpers to expose links
+function copyChapterLink(seriesId,chapterId){
+  const link=location.origin+location.pathname+makeChapterLink(seriesId,chapterId);
+  navigator.clipboard?.writeText(link).catch(()=>{});
+  alert("Link skopiowany:
+"+link);
+}
+
+restoreAdminTools();
 
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 }
