@@ -28,7 +28,6 @@ window.firebaseReady = true;
 </script>
 
 <style>
-/* unchanged styles */
 body{margin:0;background:#0b0016;color:#e9d5ff;font-family:system-ui}
 header{background:#2e1065;padding:10px;display:flex;flex-wrap:wrap;gap:6px}
 .card{background:#1a0033;border:1px solid #5b21b6;padding:10px;border-radius:8px;margin:10px 0}
@@ -39,6 +38,7 @@ input,textarea{width:100%;margin:4px 0;background:#14002a;color:white;border:1px
 .readerOverlay{position:fixed;inset:0;background:black;overflow:auto}
 .reader img{width:100%}
 .tag{background:#3b0764;padding:4px;border-radius:6px;margin:2px;display:inline-block;cursor:pointer}
+.link{cursor:pointer;text-decoration:underline;color:#c4b5fd}
 </style>
 </head>
 
@@ -46,8 +46,6 @@ input,textarea{width:100%;margin:4px 0;background:#14002a;color:white;border:1px
 <div id="root"></div>
 
 <script>
-/* ================= SAFE START ================= */
-
 function waitFirebase(cb){
   if(window.firebaseReady) cb();
   else setTimeout(()=>waitFirebase(cb),50);
@@ -60,11 +58,9 @@ function startApp(){
 const e=React.createElement;
 const uid=()=>Date.now()+Math.random();
 
-const TAGS=[/* unchanged list */"yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
+const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","krwawe","wampiry","inny świat","fantasy","wilkołaki","dziewczyny","chłopcy","przyjaciele z dzieciństwa","rodzina królewska","psychologiczne","kosmici","szkolne","policja","historyczne","slice of life","omegaverse","wojna","walki","morderstwa","lochy","potwory","magiczne","auta","wyścigi","drama","różnica wieku","demony","anioły","zagadki","ninja","zmiana ciał","komedia","duchy","dzieci","dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo","muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"];
 
 const ADMIN={mail:"valerii000vall@gmail.com",pass:"pika6969",name:"StaryBezKabli"};
-
-/* ================= FIREBASE HOOK FIX ================= */
 
 function useDB(key,initial){
   const [data,setData]=React.useState(initial);
@@ -82,8 +78,6 @@ function useDB(key,initial){
 
   return [data,save];
 }
-
-/* ================= APP ================= */
 
 function App(){
 
@@ -105,42 +99,92 @@ function addHistory(entry){
   setHistory(prev=>[{id:uid(),...entry,time:Date.now()},...(prev||[]).slice(0,50)]);
 }
 
-/* ================= HOME ================= */
+function deleteSeries(id){
+  if(!isAdmin) return;
+  setSeries(prev=>(prev||[]).filter(s=>s.id!==id));
+  if(active?.id===id) setActive(null);
+}
+
+function deleteChapter(seriesId,chapterId){
+  if(!isAdmin) return;
+  setSeries(prev=>prev.map(s=>{
+    if(s.id!==seriesId) return s;
+    return {...s,chapters:(s.chapters||[]).filter(c=>c.id!==chapterId)};
+  }));
+}
+
+function addTeamMember(){
+  if(!isAdmin) return;
+  const name=prompt("Imię członka zespołu:");
+  if(!name) return;
+  setTeam(prev=>[...(prev||[]),{id:uid(),name}]);
+}
+
+function chapterLink(seriesObj,ch){
+  const hash=`#read=${seriesObj.id}:${ch.id}`;
+  return hash;
+}
+
+React.useEffect(()=>{
+  const h=location.hash;
+  if(!h.startsWith("#read=")) return;
+  const [,payload]=h.split("=");
+  const [sid,cid]=payload.split(":");
+  const s=(series||[]).find(x=>String(x.id)===sid);
+  const ch=s?.chapters?.find(x=>String(x.id)===cid);
+  if(s&&ch){
+    setActive(s);
+    setView("series");
+    setReader(ch);
+  }
+},[series]);
+
+function Library(){
+  const favSeries=(series||[]).filter(s=>favorites.includes(s.id));
+  return e("div",{className:"card"},
+    e("h3",null,"Biblioteka (ulubione)"),
+    favSeries.length===0 && e("div",null,"Brak ulubionych"),
+    favSeries.map(s=>
+      e("div",{key:s.id,className:"link",onClick:()=>{setActive(s);setView("series");}},s.title)
+    )
+  );
+}
 
 function Home(){
 return e("div",null,
 
-e("div",{className:"card"},
-e("h3",null,"Serie"),
-e("div",{className:"grid"},
-(series||[]).map(s=>
-e("div",{key:s.id,className:"card"},
-s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>{setActive(s);setView("series")}}),
-e("b",{onClick:()=>{setActive(s);setView("series")}},s.title),
-e("button",{onClick:()=>{
-setFavorites(favorites.includes(s.id)?
-favorites.filter(f=>f!==s.id):
-[...favorites,s.id])}},
-favorites.includes(s.id)?"★":"☆")
-))
-)),
+ e(Library),
 
-e("div",{className:"card"},
-e("h3",null,"Komentarze globalne"),
-(comments||[]).map(c=>e("div",{key:c.id},c.user,": ",c.text)),
-user&&e("button",{onClick:()=>{
-const t=prompt("Komentarz:");
-if(!t)return;
-setComments(prev=>[{id:uid(),user:user.name,text:t},...(prev||[])]);
-}},"Dodaj komentarz")),
+ e("div",{className:"card"},
+ e("h3",null,"Serie"),
+ e("div",{className:"grid"},
+ (series||[]).map(s=>
+ e("div",{key:s.id,className:"card"},
+ s.cover&&e("img",{src:s.cover,className:"cover",onClick:()=>{setActive(s);setView("series")}}),
+ e("b",{onClick:()=>{setActive(s);setView("series")}},s.title),
+ e("button",{onClick:()=>{
+ setFavorites(favorites.includes(s.id)?
+ favorites.filter(f=>f!==s.id):
+ [...favorites,s.id])}},
+ favorites.includes(s.id)?"★":"☆"),
+ isAdmin&&e("button",{onClick:()=>deleteSeries(s.id)},"Usuń tytuł")
+ )))),
 
-e("div",{className:"card"},
-e("h3",null,"Zespół"),
-(team||[]).map(m=>e("div",{key:m.id},m.name)))
+ e("div",{className:"card"},
+ e("h3",null,"Komentarze globalne"),
+ (comments||[]).map(c=>e("div",{key:c.id},c.user,": ",c.text)),
+ user&&e("button",{onClick:()=>{
+ const t=prompt("Komentarz:");
+ if(!t)return;
+ setComments(prev=>[{id:uid(),user:user.name,text:t},...(prev||[])]);
+ }},"Dodaj komentarz")),
+
+ e("div",{className:"card"},
+ e("h3",null,"Zespół"),
+ (team||[]).map(m=>e("div",{key:m.id},m.name)),
+ isAdmin&&e("button",{onClick:addTeamMember},"+ Dodaj członka"))
 );
 }
-
-/* ================= SERIES ================= */
 
 function SeriesView(){
 if(!active)return null;
@@ -170,33 +214,35 @@ function uploadImages(ch){
 
 return e("div",null,
 
-e("div",{className:"card"},
-e("h2",null,active.title),
-e("p",null,active.description),
+ e("div",{className:"card"},
+ e("h2",null,active.title),
+ e("p",null,active.description),
 
-(active.chapters||[]).map(ch=>
-e("div",{key:ch.id},
-e("button",{onClick:()=>{
-setReader(ch);
-user&&addHistory({user:user.mail,series:active.title,chapter:ch.title});
-}},ch.title),
+ (active.chapters||[]).map(ch=>
+ e("div",{key:ch.id},
+ e("button",{onClick:()=>{
+ setReader(ch);
+ location.hash=chapterLink(active,ch);
+ user&&addHistory({user:user.mail,series:active.title,chapter:ch.title});
+ }},ch.title),
+ e("span",{className:"link",onClick:()=>{
+ navigator.clipboard?.writeText(location.origin+location.pathname+chapterLink(active,ch));
+ }}," kopiuj link"),
+ (isAdmin||user)&&e("button",{onClick:()=>uploadImages(ch)},"+ obrazy"),
+ isAdmin&&e("button",{onClick:()=>deleteChapter(active.id,ch.id)},"Usuń rozdział")
+ )),
 
-(isAdmin||user)&&e("button",{onClick:()=>uploadImages(ch)},"+ obrazy")
-)),
+ (isAdmin||user)&&e("button",{onClick:()=>{
+ const title=prompt("Tytuł rozdziału:");
+ if(!title)return;
 
-(isAdmin||user)&&e("button",{onClick:()=>{
-const title=prompt("Tytuł rozdziału:");
-if(!title)return;
-
-const ch={id:uid(),title,images:[]};
-const updated={...active,chapters:[...(active.chapters||[]),ch]};
-setSeries(series.map(s=>s.id===active.id?updated:s));
-setActive(updated);
-}},"Dodaj rozdział")
+ const ch={id:uid(),title,images:[]};
+ const updated={...active,chapters:[...(active.chapters||[]),ch]};
+ setSeries(series.map(s=>s.id===active.id?updated:s));
+ setActive(updated);
+ }},"Dodaj rozdział")
 ));
 }
-
-/* ================= ADD SERIES ================= */
 
 function AddSeries(){
 
@@ -237,8 +283,6 @@ onClick:()=>setTags(tags.includes(t)?tags.filter(x=>x!==t):[...tags,t])
 e("button",{onClick:add},"Dodaj serię"));
 }
 
-/* ================= LOGIN ================= */
-
 function Login(){
 
 function go(){
@@ -265,8 +309,6 @@ return e("div",{className:"card"},
 e("button",{onClick:go},"Login/Rejestracja"));
 }
 
-/* ================= PROFILE ================= */
-
 function Profile(){
 if(!user)return e("div",{className:"card"},"Zaloguj się");
 
@@ -278,8 +320,6 @@ myHistory.map(h=>e("div",{key:h.id},
 h.series," — ",h.chapter)));
 }
 
-/* ================= ADMIN ================= */
-
 function AdminPanel(){
 if(!isAdmin)return null;
 
@@ -289,16 +329,12 @@ Object.entries(accounts||{}).map(([mail,a])=>
 e("div",{key:mail},mail," — ",a.name)));
 }
 
-/* ================= READER ================= */
-
 function Reader(){
 return e("div",{className:"readerOverlay"},
 e("button",{onClick:()=>setReader(null)},"Zamknij"),
 e("div",{className:"reader"},
 (reader.images||[]).map((img,i)=>e("img",{key:i,src:img}))));
 }
-
-/* ================= UI ================= */
 
 return e("div",null,
 
@@ -323,7 +359,7 @@ reader&&e(Reader)
 
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 
-} // firebase wait end
+}
 </script>
 </body>
 </html>
