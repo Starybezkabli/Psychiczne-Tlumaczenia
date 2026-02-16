@@ -5,11 +5,9 @@
 <title>Psychiczne tłumaczenia — Ultimate Reader+</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<!-- React UMD (GitHub Pages safe) -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-<!-- Firebase (GitHub safe — single module loader) -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -53,8 +51,6 @@ input,textarea{width:100%;margin:4px 0;background:#14002a;color:white;border:1px
 <div id="root"></div>
 
 <script>
-
-/* ===== Firebase wait (GitHub Pages fix) ===== */
 function waitFirebase(cb){
   if(window.firebaseReady && window.db) cb();
   else setTimeout(()=>waitFirebase(cb),50);
@@ -66,11 +62,14 @@ function startApp(){
 const e = React.createElement;
 const uid = () => Date.now()+Math.random();
 
-const TAGS=["yaoi","yuri","hetero","romans","akcja","kryminalne","horror","fantasy","psychologiczne","komedia"];
+const TAGS=["yaoi, yuri, hetero, romans, akcja, kryminalne, horror, krwawe, wampiry, inny świat, fantasy, wilkołaki, dziewczyny, chłopcy, przyjaciele z dzieciństwa, rodzina królewska, psychologiczne, kosmici, szkolne, policja, historyczne, slice of life, omegaverse, wojna, walki, morderstwa, lochy, potwory, magiczne, auta, wyścigi, drama, różnica wieku, demony, anioły, zagatki, ninja, zmiana ciał, komedia, duchy, dzieci, dla dorosłych, medyczne, sm/bdsm/sub-dom, gry wideo, muzyka, konkurencje, wróżki, fetysze, zemsta, klątwy"];
 
-const ADMIN={mail:valerii000vall@gmail.com,pass:"pika6969",name:"StaryBezKabli"};
+const ADMIN={
+  mail:"valerii000vall@gmail.com",
+  pass:"pika6969",
+  name:"StaryBezKabli"
+};
 
-/* ===== Firebase hook (safe) ===== */
 function useDB(key,initial){
   const [data,setData]=React.useState(initial);
 
@@ -93,7 +92,6 @@ function useDB(key,initial){
   return [data,save];
 }
 
-/* ===== APP ===== */
 function App(){
 
 const [series,setSeries]=useDB("series",[]);
@@ -107,8 +105,6 @@ const [search,setSearch]=React.useState("");
 const [tag,setTag]=React.useState(null);
 
 const isAdmin=user?.mail===ADMIN.mail;
-
-/* ===== Favorites synced to Firebase ===== */
 const favorites=user?libraries[user.mail]||[]:[];
 
 function toggleFav(id){
@@ -121,16 +117,14 @@ function toggleFav(id){
   setLibraries(prev=>({...prev,[user.mail]:updated}));
 }
 
-/* ===== Filtering ===== */
 function filtered(){
   return (series||[]).filter(s=>{
-    const okTitle=s.title?.toLowerCase().includes(search.toLowerCase());
+    const okTitle=(s.title||"").toLowerCase().includes(search.toLowerCase());
     const okTag=!tag||(s.tags||[]).includes(tag);
     return okTitle && okTag;
   });
 }
 
-/* ===== Admin delete ===== */
 function deleteSeries(id){
   if(!isAdmin) return;
   setSeries(prev=>prev.filter(s=>s.id!==id));
@@ -144,7 +138,6 @@ function deleteChapter(sid,cid){
   }));
 }
 
-/* ===== Library ===== */
 function Library(){
   if(!user) return null;
 
@@ -160,7 +153,6 @@ function Library(){
   );
 }
 
-/* ===== Home ===== */
 function Home(){
 return e("div",null,
 
@@ -194,7 +186,6 @@ return e("div",null,
  ))));
 }
 
-/* ===== Series ===== */
 function SeriesView(){
 if(!active) return null;
 
@@ -203,13 +194,10 @@ return e("div",{className:"card"},
  (active.chapters||[]).map(ch=>
  e("div",{key:ch.id},
  e("button",{onClick:()=>setReader(ch)},ch.title),
- isAdmin&&e("button",{
-   onClick:()=>deleteChapter(active.id,ch.id)
- },"Usuń")
+ isAdmin&&e("button",{onClick:()=>deleteChapter(active.id,ch.id)},"Usuń")
  )));
 }
 
-/* ===== Login ===== */
 function Login(){
 function go(){
   const mail=prompt("Email:");
@@ -226,7 +214,6 @@ return e("div",{className:"card"},
  e("button",{onClick:go},"Login"));
 }
 
-/* ===== Reader ===== */
 function Reader(){
 return e("div",{className:"readerOverlay"},
  e("button",{onClick:()=>setReader(null)},"Zamknij"),
@@ -234,7 +221,6 @@ return e("div",{className:"readerOverlay"},
  (reader?.images||[]).map((img,i)=>e("img",{key:i,src:img}))));
 }
 
-/* ===== UI ===== */
 return e("div",null,
  e("header",null,
  e("button",{onClick:()=>setView("home")},"Home"),
@@ -247,178 +233,14 @@ return e("div",null,
 );
 }
 
-/* ===== RESTORED OPTIONS (ADD ONLY — GitHub safe) ===== */
-
-// Admin: quick restore helpers (non-breaking)
-function restoreAdminTools(){
-  console.log("Admin tools active");
-}
-
-// Library autosave guard
-function safeLibrarySave(saveFn,data){
-  try{ saveFn(data); }
-  catch(err){ console.warn("Library save failed",err); }
-}
-
-// Series global sync guard
-function safeSeriesUpdate(saveFn,data){
-  try{ saveFn(data); }
-  catch(err){ console.warn("Series sync failed",err); }
-}
-
-// Chapter link generator (restored feature)
-function chapterLink(seriesId,chapterId){
-  return `#read-${seriesId}-${chapterId}`;
-}
-
-// Hash router restore
-window.addEventListener("hashchange",()=>{
-  console.log("Hash navigation:",location.hash);
-});
-
-/* ===== SEARCH + TAG FILTER (RESTORED UI) ===== */
-
-function TagSearch({series,search,setSearch,tagFilter,setTagFilter,onOpen}){
-  const filtered=(series||[]).filter(s=>{
-    const titleOk=(s.title||"").toLowerCase().includes((search||"").toLowerCase());
-    const tagOk=!tagFilter||(s.tags||[]).includes(tagFilter);
-    return titleOk&&tagOk;
-  });
-
-  return React.createElement("div",{className:"card"},
-    React.createElement("h3",null,"Wyszukiwarka + tagi"),
-    React.createElement("input",{
-      placeholder:"Szukaj tytułu...",
-      value:search||"",
-      onChange:e=>setSearch&&setSearch(e.target.value)
-    }),
-    (typeof TAGS!=="undefined"?TAGS:[]).map(t=>
-      React.createElement("span",{
-        key:t,
-        className:"tag",
-        style:{background:tagFilter===t?"#9333ea":""},
-        onClick:()=>setTagFilter&&setTagFilter(tagFilter===t?null:t)
-      },t)
-    ),
-    React.createElement("div",{style:{marginTop:8}},
-      filtered.map(s=>
-        React.createElement("div",{
-          key:s.id,
-          className:"link",
-          onClick:()=>onOpen&&onOpen(s)
-        },s.title)
-      )
-    )
-  );
-}
-
-/* ===== MULTI IMAGE CHAPTER UPLOAD (SAFE ADD) ===== */
-
-function multiImageUpload(callback){
-  const input=document.createElement("input");
-  input.type="file";
-  input.multiple=true;
-  input.accept="image/*";
-
-  input.onchange=()=>{
-    const files=[...input.files];
-    Promise.all(files.map(f=>new Promise(res=>{
-      const r=new FileReader();
-      r.onload=()=>res(r.result);
-      r.readAsDataURL(f);
-    }))).then(images=>callback&&callback(images));
-  };
-
-  input.click();
-}
-
-/* ===== ADD TITLE + CHAPTER HELPERS ===== */
-
-function addTitleHelper(setSeries){
-  const title=prompt("Tytuł serii:");
-  if(!title) return;
-
-  const tags=(prompt("Tagi (oddziel przecinkami):")||"")
-    .split(",")
-    .map(x=>x.trim())
-    .filter(Boolean);
-
-  setSeries(prev=>[
-    ...(prev||[]),
-    {id:Date.now()+Math.random(),title,tags,chapters:[]}
-  ]);
-}
-
-function addChapterHelper(series,setSeries){
-  const title=prompt("Tytuł rozdziału:");
-  if(!title) return;
-
-  multiImageUpload(images=>{
-    const chapter={id:Date.now()+Math.random(),title,images};
-
-    const updated={
-      ...series,
-      chapters:[...(series.chapters||[]),chapter]
-    };
-
-    setSeries(prev=>prev.map(s=>s.id===series.id?updated:s));
-  });
-}
-
-/* ===== CLOUD LIBRARY + CHAPTER LINKS (ADD ONLY) ===== */
-
-// Cloud library hook (per user)
-function useCloudLibrary(user){
-  const [lib,setLib]=React.useState([]);
-
-  React.useEffect(()=>{
-    if(!user?.mail||!window.db) return;
-    const r=dbRef(db,"libraries/"+encodeURIComponent(user.mail));
-    dbOn(r,s=>setLib(s.exists()?s.val():[]));
-  },[user]);
-
-  const save=v=>{
-    if(!user?.mail) return;
-    const val=typeof v==="function"?v(lib):v;
-    setLib(val);
-    dbSet(dbRef(db,"libraries/"+encodeURIComponent(user.mail)),val);
-  };
-
-  return [lib,save];
-}
-
-// Chapter link generator
-function makeChapterLink(seriesId,chapterId){
-  return `#chapter/${seriesId}/${chapterId}`;
-}
-
-// Router: open chapter from URL hash
-function installChapterRouter(openSeries,openChapter){
-  function parse(){
-    const h=location.hash||"";
-    if(!h.startsWith("#chapter/")) return;
-
-    const [, ,sid,cid]=h.split("/");
-    if(sid&&cid) openChapter&&openChapter(sid,cid);
-  }
-
-  window.addEventListener("hashchange",parse);
-  setTimeout(parse,0);
-}
-
-// Safe helpers to expose links
 function copyChapterLink(seriesId,chapterId){
-  const link=location.origin+location.pathname+makeChapterLink(seriesId,chapterId);
+  const link=location.origin+location.pathname+`#chapter/${seriesId}/${chapterId}`;
   navigator.clipboard?.writeText(link).catch(()=>{});
-  alert("Link skopiowany:
-"+link);
+  alert("Link skopiowany:\n"+link);
 }
-
-restoreAdminTools();
 
 ReactDOM.createRoot(document.getElementById("root")).render(e(App));
 }
-
 </script>
 </body>
 </html>
