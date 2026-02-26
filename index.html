@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manga / Manhwa Tłumaczenia</title>
+<title>PSYCHIATRYK</title>
 
 <style>
 body{
@@ -15,14 +15,28 @@ body{
 
 header{
     background:#1a1a1a;
-    padding:15px;
+    padding:20px;
     text-align:center;
-    font-size:24px;
+    font-size:28px;
     font-weight:bold;
+    letter-spacing:2px;
 }
 
 .container{
     padding:20px;
+}
+
+.search-box{
+    text-align:center;
+    margin-bottom:25px;
+}
+
+.search-box input{
+    width:300px;
+    padding:10px;
+    font-size:16px;
+    border:none;
+    border-radius:5px;
 }
 
 .grid{
@@ -54,6 +68,7 @@ header{
 .card h3{
     padding:10px;
     margin:0;
+    font-size:18px;
 }
 
 .tags{
@@ -90,12 +105,17 @@ button{
 </head>
 <body>
 
-<header>Manga / Manhwa Tłumaczenia</header>
+<header>PSYCHIATRYK</header>
 
 <div class="container">
 
 <!-- STRONA GŁÓWNA -->
 <div id="home">
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Szukaj po tytule lub tagach..." onkeyup="searchManga()">
+    </div>
+
     <div class="grid" id="titleList"></div>
 </div>
 
@@ -126,14 +146,11 @@ button{
 
 const mangaData = [
 {
-    id:"Love and roll",
-    title:"Love and roll",
-    description:"Tłumacz: Eri
-Cleaner: Stary bez kabli
-
-Opis: Oh Dokhee, perkusista Bold Rabbit, niezależnego zespołu będącego na krawędzi wybicia się, otrzymuje propozycję udziału w głośnej sesji zdjęciowej. Początkowo niezdecydowany i nieśmiały przed aparatem, zgadza się, gdy dowiaduje się, że zdjęcia będzie robić Myung Leejin, osoba, którą Dokhee podziwia od lat. To, co zaczyna się jako zwykła sesja zdjęciowa, szybko przeradza się w zamieszanie, gdy Leejin źle rozumie Dokhee. Próbując wyjaśnić sprawę, Dokhee uwodzi go i doprowadza do stosunku. Gdy granice między pożądaniem a nieporozumieniem zacierają się, Dokhee zostaje pochłonięty przez emocje, które ledwo jest w stanie kontrolować. Czy skrywana miłość Dokhee w końcu dosięgnie Leejina, czy też wszystko się rozpadnie, zanim jeszcze się zacznie?",
-    cover:"b41021be842c310c1015df5c0c2d1622f97bab8a_600_800_31166",
-    tags:["Manhwa, Yaoi, Muzyka, Różnica wieku"],
+    id:"solo-leveling",
+    title:"Solo Leveling",
+    description:"Historia najsłabszego łowcy, który zdobywa system i zaczyna rosnąć w siłę.",
+    cover:"images/solo.jpg",
+    tags:["Akcja","Fantasy","Manhwa"],
     chapters:[
         {
             name:"Rozdział 1",
@@ -142,17 +159,9 @@ Opis: Oh Dokhee, perkusista Bold Rabbit, niezależnego zespołu będącego na kr
                 "images/solo/ch1/2.jpg",
                 "images/solo/ch1/3.jpg"
             ]
-        },
-        {
-            name:"Rozdział 2",
-            images:[
-                "images/solo/ch2/1.jpg",
-                "images/solo/ch2/2.jpg"
-            ]
         }
     ]
 }
-
 ];
 
 
@@ -167,9 +176,15 @@ const readerPage = document.getElementById("readerPage");
 
 let currentSeries = null;
 
-function loadTitles(){
+function loadTitles(filter=""){
     titleList.innerHTML="";
-    mangaData.forEach(series=>{
+
+    mangaData
+    .filter(series=>{
+        const text=(series.title+" "+series.tags.join(" ")).toLowerCase();
+        return text.includes(filter.toLowerCase());
+    })
+    .forEach(series=>{
         const card=document.createElement("div");
         card.className="card";
         card.innerHTML=`
@@ -180,6 +195,11 @@ function loadTitles(){
         card.onclick=()=>openSeries(series.id);
         titleList.appendChild(card);
     });
+}
+
+function searchManga(){
+    const value=document.getElementById("searchInput").value;
+    loadTitles(value);
 }
 
 function openSeries(id){
