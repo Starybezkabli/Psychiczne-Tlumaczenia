@@ -9,17 +9,19 @@
 body{
     margin:0;
     font-family:Arial, Helvetica, sans-serif;
-    background:#0f0f0f;
+    background:linear-gradient(135deg,#0d001a,#1a0033,#120022);
     color:white;
 }
 
 header{
-    background:#1a1a1a;
-    padding:20px;
+    background:#2a004d;
+    padding:25px;
     text-align:center;
-    font-size:28px;
+    font-size:32px;
     font-weight:bold;
-    letter-spacing:2px;
+    letter-spacing:3px;
+    color:#d9b3ff;
+    box-shadow:0 0 20px #8000ff;
 }
 
 .container{
@@ -28,35 +30,45 @@ header{
 
 .search-box{
     text-align:center;
-    margin-bottom:25px;
+    margin-bottom:30px;
 }
 
 .search-box input{
-    width:300px;
-    padding:10px;
+    width:320px;
+    padding:12px;
     font-size:16px;
     border:none;
-    border-radius:5px;
+    border-radius:8px;
+    background:#2a004d;
+    color:white;
+    outline:none;
+    box-shadow:0 0 10px #8000ff;
+}
+
+.search-box input::placeholder{
+    color:#c299ff;
 }
 
 .grid{
     display:flex;
     flex-wrap:wrap;
-    gap:20px;
+    gap:25px;
     justify-content:center;
 }
 
 .card{
-    background:#1e1e1e;
+    background:#1f0033;
     width:220px;
-    border-radius:10px;
+    border-radius:15px;
     overflow:hidden;
     cursor:pointer;
     transition:0.3s;
+    box-shadow:0 0 15px rgba(128,0,255,0.4);
 }
 
 .card:hover{
     transform:scale(1.05);
+    box-shadow:0 0 25px #b366ff;
 }
 
 .card img{
@@ -69,12 +81,13 @@ header{
     padding:10px;
     margin:0;
     font-size:18px;
+    color:#e6ccff;
 }
 
 .tags{
-    padding:0 10px 10px 10px;
+    padding:0 10px 15px 10px;
     font-size:12px;
-    color:#00ffcc;
+    color:#b366ff;
 }
 
 .hidden{
@@ -82,24 +95,37 @@ header{
 }
 
 button{
-    background:#00ffcc;
+    background:#8000ff;
+    color:white;
     border:none;
     padding:10px 15px;
     cursor:pointer;
-    margin-top:10px;
+    margin-top:15px;
+    border-radius:6px;
+}
+
+button:hover{
+    background:#a64dff;
 }
 
 .chapter-list div{
-    background:#1e1e1e;
-    padding:10px;
-    margin:5px 0;
+    background:#2a004d;
+    padding:12px;
+    margin:8px 0;
     cursor:pointer;
+    border-radius:6px;
+}
+
+.chapter-list div:hover{
+    background:#3d0066;
 }
 
 .reader img{
     width:90%;
-    margin:15px auto;
+    margin:20px auto;
     display:block;
+    border-radius:10px;
+    box-shadow:0 0 20px rgba(128,0,255,0.5);
 }
 </style>
 </head>
@@ -109,7 +135,6 @@ button{
 
 <div class="container">
 
-<!-- STRONA GŁÓWNA -->
 <div id="home">
 
     <div class="search-box">
@@ -119,7 +144,6 @@ button{
     <div class="grid" id="titleList"></div>
 </div>
 
-<!-- STRONA SERII -->
 <div id="seriesPage" class="hidden">
     <button onclick="goHome()">⬅ Powrót</button>
     <h2 id="seriesTitle"></h2>
@@ -129,7 +153,6 @@ button{
     <div id="chapterList" class="chapter-list"></div>
 </div>
 
-<!-- CZYTNIK -->
 <div id="readerPage" class="hidden">
     <button onclick="backToSeries()">⬅ Powrót do rozdziałów</button>
     <h2 id="readerTitle"></h2>
@@ -141,31 +164,56 @@ button{
 <script>
 
 /* =========================
-   🔥 TUTAJ DODAJESZ SERIE
+   🔥 TWOJE SERIE
    ========================= */
 
 const mangaData = [
+
 {
     id:"Love-and-roll",
-    title:"Love and roll",
-    description:"Opis: Oh Dokhee, perkusista Bold Rabbit, niezależnego zespołu będącego na krawędzi wybicia się, otrzymuje propozycję udziału w głośnej sesji zdjęciowej. Początkowo niezdecydowany i nieśmiały przed aparatem, zgadza się, gdy dowiaduje się, że zdjęcia będzie robić Myung Leejin, osoba, którą Dokhee podziwia od lat. To, co zaczyna się jako zwykła sesja zdjęciowa, szybko przeradza się w zamieszanie, gdy Leejin źle rozumie Dokhee. Próbując wyjaśnić sprawę, Dokhee uwodzi go i doprowadza do stosunku. Gdy granice między pożądaniem a nieporozumieniem zacierają się, Dokhee zostaje pochłonięty przez emocje, które ledwo jest w stanie kontrolować. Czy skrywana miłość Dokhee w końcu dosięgnie Leejina, czy też wszystko się rozpadnie, zanim jeszcze się zacznie?",
+    title:"Love and Roll",
+    description:"Perkusista niezależnego zespołu wpada w emocjonalną relację z fotografem, którego od lat podziwia. Historia pełna napięcia, muzyki i skomplikowanych uczuć.",
     cover:"https://ccdn.lezhin.com/v2/comics/7011732603881086/images/tall.webp?updated=1733476692171&width=420",
-    tags:["Manhwa", "Yaoi", "Muzyka", "różnica wieku"],
+    tags:["Manhwa","Yaoi","Muzyka","Różnica wieku"],
     chapters:[
         {
             name:"Rozdział 1",
             images:[
-                "images/solo/ch1/1.jpg",
-                "images/solo/ch1/2.jpg",
-                "images/solo/ch1/3.jpg"
+                "images/love/ch1/1.jpg",
+                "images/love/ch1/2.jpg"
+            ]
+        }
+    ]
+},
+
+{
+    id:"Crimson-Mind",
+    title:"Crimson Mind",
+    description:"Mroczna historia o chłopaku, który odkrywa, że potrafi manipulować wspomnieniami innych ludzi. Każda decyzja ma swoją cenę.",
+    cover:"https://picsum.photos/400/600?random=1",
+    tags:["Psychologiczne","Drama","Akcja","Mroczne"],
+    chapters:[
+        {
+            name:"Rozdział 1",
+            images:[
+                "images/crimson/ch1/1.jpg",
+                "images/crimson/ch1/2.jpg"
+            ]
+        },
+        {
+            name:"Rozdział 2",
+            images:[
+                "images/crimson/ch2/1.jpg",
+                "images/crimson/ch2/2.jpg"
             ]
         }
     ]
 }
+
 ];
 
 /* =========================
-   LOGIKA STRONY
+   LOGIKA
    ========================= */
 
 const titleList = document.getElementById("titleList");
@@ -244,6 +292,7 @@ function openReader(index){
 
 function goHome(){
     seriesPage.classList.add("hidden");
+    readerPage.classList.add("hidden");
     home.classList.remove("hidden");
 }
 
