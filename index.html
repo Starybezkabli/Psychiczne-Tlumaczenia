@@ -2,252 +2,240 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Ultimate Reader PRO FINAL</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-
-const firebaseConfig={
- apiKey:"API_KEY",
- authDomain:"psychicznetlumaczenia-34d74.firebaseapp.com",
- databaseURL:"https://psychicznetlumaczenia-34d74-default-rtdb.firebaseio.com/",
- projectId:"psychicznetlumaczenia-34d74",
- storageBucket:"psychicznetlumaczenia-34d74.appspot.com",
- messagingSenderId:"972303060927",
- appId:"1:972303060927:web:3a7a84dd3cc8963bd25b0a"
-};
-
-const app=initializeApp(firebaseConfig);
-window.db=getDatabase(app);
-window.auth=getAuth(app);
-window.storage=getStorage(app);
-
-window.ref=ref;
-window.set=set;
-window.onValue=onValue;
-window.sRef=sRef;
-window.uploadBytes=uploadBytes;
-window.getDownloadURL=getDownloadURL;
-window.createUser=createUserWithEmailAndPassword;
-window.signInUser=signInWithEmailAndPassword;
-window.onAuthChanged=onAuthStateChanged;
-
-window.ready=true;
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manga / Manhwa Tłumaczenia</title>
 
 <style>
-body{margin:0;font-family:system-ui}
-.dark{background:#0b0016;color:#e9d5ff}
-.light{background:#f5f5f5;color:#111}
-header{background:#6d28d9;padding:10px;color:white;display:flex;gap:6px;flex-wrap:wrap}
-button{background:#9333ea;color:white;border:none;padding:6px;border-radius:6px;margin:2px;cursor:pointer}
-.card{padding:10px;margin:10px 0;border-radius:8px}
-.dark .card{background:#1a0033}
-.light .card{background:white}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
-.tag{display:inline-block;padding:4px 8px;margin:4px;border-radius:6px;background:#3b0764;cursor:pointer}
-.activeTag{background:#9333ea}
-input{padding:6px;margin:4px 0;width:100%}
-.reader img{width:100%}
-.readerOverlay{position:fixed;inset:0;background:black;color:white;overflow:auto;z-index:999}
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#0f0f0f;
+    color:white;
+}
+
+header{
+    background:#1a1a1a;
+    padding:15px;
+    text-align:center;
+    font-size:24px;
+    font-weight:bold;
+}
+
+.container{
+    padding:20px;
+}
+
+.grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+    justify-content:center;
+}
+
+.card{
+    background:#1e1e1e;
+    width:220px;
+    border-radius:10px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:scale(1.05);
+}
+
+.card img{
+    width:100%;
+    height:300px;
+    object-fit:cover;
+}
+
+.card h3{
+    padding:10px;
+    margin:0;
+}
+
+.tags{
+    padding:0 10px 10px 10px;
+    font-size:12px;
+    color:#00ffcc;
+}
+
+.hidden{
+    display:none;
+}
+
+button{
+    background:#00ffcc;
+    border:none;
+    padding:10px 15px;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+.chapter-list div{
+    background:#1e1e1e;
+    padding:10px;
+    margin:5px 0;
+    cursor:pointer;
+}
+
+.reader img{
+    width:90%;
+    margin:15px auto;
+    display:block;
+}
 </style>
 </head>
-
 <body>
-<div id="root"></div>
+
+<header>Manga / Manhwa Tłumaczenia</header>
+
+<div class="container">
+
+<!-- STRONA GŁÓWNA -->
+<div id="home">
+    <div class="grid" id="titleList"></div>
+</div>
+
+<!-- STRONA SERII -->
+<div id="seriesPage" class="hidden">
+    <button onclick="goHome()">⬅ Powrót</button>
+    <h2 id="seriesTitle"></h2>
+    <p id="seriesDescription"></p>
+    <div id="seriesTags" class="tags"></div>
+    <h3>Rozdziały:</h3>
+    <div id="chapterList" class="chapter-list"></div>
+</div>
+
+<!-- CZYTNIK -->
+<div id="readerPage" class="hidden">
+    <button onclick="backToSeries()">⬅ Powrót do rozdziałów</button>
+    <h2 id="readerTitle"></h2>
+    <div class="reader" id="readerImages"></div>
+</div>
+
+</div>
 
 <script>
-function wait(cb){ if(window.ready)cb(); else setTimeout(()=>wait(cb),50); }
-wait(start);
 
-function start(){
-const e=React.createElement;
+/* =========================
+   🔥 TUTAJ DODAJESZ SERIE
+   ========================= */
 
-/* ===== PEŁNA LISTA TAGÓW ===== */
-const DEFAULT_TAGS=[
-"yaoi","yuri","hetero","romans","akcja","kryminalne","horror",
-"krwawe","wampiry","inny świat","fantasy","wilkołaki",
-"dziewczyny","chłopcy","przyjaciele z dzieciństwa",
-"rodzina królewska","psychologiczne","kosmici","szkolne",
-"policja","historyczne","slice of life","omegaverse",
-"wojna","walki","morderstwa","lochy","potwory","magiczne",
-"auta","wyścigi","drama","różnica wieku","demony","anioły",
-"zagadki","ninja","zmiana ciał","komedia","duchy","dzieci",
-"dla dorosłych","medyczne","sm/bdsm/sub-dom","gry wideo",
-"muzyka","konkurencje","wróżki","fetysze","zemsta","klątwy"
+const mangaData = [
+{
+    id:"Love and roll",
+    title:"Love and roll",
+    description:"Tłumacz: Eri
+Cleaner: Stary bez kabli
+
+Opis: Oh Dokhee, perkusista Bold Rabbit, niezależnego zespołu będącego na krawędzi wybicia się, otrzymuje propozycję udziału w głośnej sesji zdjęciowej. Początkowo niezdecydowany i nieśmiały przed aparatem, zgadza się, gdy dowiaduje się, że zdjęcia będzie robić Myung Leejin, osoba, którą Dokhee podziwia od lat. To, co zaczyna się jako zwykła sesja zdjęciowa, szybko przeradza się w zamieszanie, gdy Leejin źle rozumie Dokhee. Próbując wyjaśnić sprawę, Dokhee uwodzi go i doprowadza do stosunku. Gdy granice między pożądaniem a nieporozumieniem zacierają się, Dokhee zostaje pochłonięty przez emocje, które ledwo jest w stanie kontrolować. Czy skrywana miłość Dokhee w końcu dosięgnie Leejina, czy też wszystko się rozpadnie, zanim jeszcze się zacznie?",
+    cover:"b41021be842c310c1015df5c0c2d1622f97bab8a_600_800_31166",
+    tags:["Manhwa, Yaoi, Muzyka, Różnica wieku"],
+    chapters:[
+        {
+            name:"Rozdział 1",
+            images:[
+                "images/solo/ch1/1.jpg",
+                "images/solo/ch1/2.jpg",
+                "images/solo/ch1/3.jpg"
+            ]
+        },
+        {
+            name:"Rozdział 2",
+            images:[
+                "images/solo/ch2/1.jpg",
+                "images/solo/ch2/2.jpg"
+            ]
+        }
+    ]
+}
+
 ];
 
-/* ===== HOOK DB ===== */
-function useDB(path,init){
- const[d,setD]=React.useState(init);
- React.useEffect(()=>{
-  if(!path)return;
-  const r=window.ref(window.db,path);
-  window.onValue(r,s=>{
-   if(s.exists()) setD(s.val());
-   else window.set(r,init);
-  });
- },[path]);
- const save=v=>{
-  const val=typeof v==="function"?v(d):v;
-  setD(val);
-  window.set(window.ref(window.db,path),val);
- };
- return[d,save];
+
+/* =========================
+   LOGIKA STRONY
+   ========================= */
+
+const titleList = document.getElementById("titleList");
+const home = document.getElementById("home");
+const seriesPage = document.getElementById("seriesPage");
+const readerPage = document.getElementById("readerPage");
+
+let currentSeries = null;
+
+function loadTitles(){
+    titleList.innerHTML="";
+    mangaData.forEach(series=>{
+        const card=document.createElement("div");
+        card.className="card";
+        card.innerHTML=`
+            <img src="${series.cover}">
+            <h3>${series.title}</h3>
+            <div class="tags">${series.tags.join(", ")}</div>
+        `;
+        card.onclick=()=>openSeries(series.id);
+        titleList.appendChild(card);
+    });
 }
 
-function useAuth(){
- const[u,setU]=React.useState(null);
- React.useEffect(()=>window.onAuthChanged(window.auth,setU),[]);
- return u;
+function openSeries(id){
+    const series=mangaData.find(s=>s.id===id);
+    currentSeries=series;
+
+    home.classList.add("hidden");
+    seriesPage.classList.remove("hidden");
+
+    document.getElementById("seriesTitle").innerText=series.title;
+    document.getElementById("seriesDescription").innerText=series.description;
+    document.getElementById("seriesTags").innerText=series.tags.join(", ");
+
+    const chapterList=document.getElementById("chapterList");
+    chapterList.innerHTML="";
+
+    series.chapters.forEach((ch,index)=>{
+        const div=document.createElement("div");
+        div.innerText=ch.name;
+        div.onclick=()=>openReader(index);
+        chapterList.appendChild(div);
+    });
 }
 
-function App(){
+function openReader(index){
+    const chapter=currentSeries.chapters[index];
 
-const user=useAuth();
-const [series,setSeries]=useDB("series",[]);
-const [tags,setTags]=useDB("tags",DEFAULT_TAGS);
-const [admins,setAdmins]=useDB("admins",[]);
-const [theme,setTheme]=useDB(user?`users/${user.uid}/theme`:"tmp","dark");
+    seriesPage.classList.add("hidden");
+    readerPage.classList.remove("hidden");
 
-const [view,setView]=React.useState("home");
-const [active,setActive]=React.useState(null);
-const [reader,setReader]=React.useState(null);
-const [page,setPage]=React.useState(0);
-const [search,setSearch]=React.useState("");
-const [tagFilter,setTagFilter]=React.useState([]);
+    document.getElementById("readerTitle").innerText=
+        currentSeries.title+" - "+chapter.name;
 
-const isAdmin=user && admins.includes(user.uid);
+    const readerImages=document.getElementById("readerImages");
+    readerImages.innerHTML="";
 
-React.useEffect(()=>{
- if(user && admins.length===0) setAdmins([user.uid]);
-},[user,admins]);
-
-/* ===== DODAJ SERIE ===== */
-function addSeries(){
- const title=prompt("Tytuł serii:");
- if(!title)return;
-
- const selected=[];
- tags.forEach(t=>{
-  if(confirm("Dodać tag: "+t+" ?")) selected.push(t);
- });
-
- const obj={id:Date.now(),title,tags:selected,chapters:[]};
- setSeries([...series,obj]);
+    chapter.images.forEach(img=>{
+        const image=document.createElement("img");
+        image.src=img;
+        readerImages.appendChild(image);
+    });
 }
 
-/* ===== DODAJ ROZDZIAŁ ===== */
-function addChapter(s){
- const title=prompt("Tytuł rozdziału:");
- if(!title)return;
-
- const input=document.createElement("input");
- input.type="file";
- input.multiple=true;
- input.accept="image/*";
-
- input.onchange=async ()=>{
-  const urls=[];
-  for(let f of input.files){
-   const refS=window.sRef(window.storage,"chapters/"+Date.now()+f.name);
-   await window.uploadBytes(refS,f);
-   const url=await window.getDownloadURL(refS);
-   urls.push(url);
-  }
-  const chapter={id:Date.now(),title,images:urls};
-  setSeries(prev=>prev.map(x=>
-   x.id===s.id?{...x,chapters:[...x.chapters,chapter]}:x
-  ));
- };
- input.click();
+function goHome(){
+    seriesPage.classList.add("hidden");
+    home.classList.remove("hidden");
 }
 
-/* ===== FILTR ===== */
-const filtered=(series||[]).filter(s=>{
- const t=s.title?.toLowerCase().includes(search.toLowerCase());
- const tg=tagFilter.length===0 || tagFilter.every(tag=>s.tags?.includes(tag));
- return t && tg;
-});
-
-/* ===== READER ===== */
-function Reader(){
- return e("div",{className:"readerOverlay"},
-  e("button",{onClick:()=>setReader(null)},"Zamknij"),
-  e("button",{onClick:()=>setPage(p=>Math.max(p-1,0))},"◀"),
-  e("button",{onClick:()=>setPage(p=>Math.min(p+1,reader.images.length-1))},"▶"),
-  e("div",{className:"reader"},
-   e("img",{src:reader.images[page]})
-  )
- );
+function backToSeries(){
+    readerPage.classList.add("hidden");
+    seriesPage.classList.remove("hidden");
 }
 
-/* ===== RENDER ===== */
-return e("div",{className:theme},
- e("header",null,
-  e("button",{onClick:()=>setView("home")},"Home"),
-  e("button",{onClick:()=>setView("login")},"Login"),
-  isAdmin && e("button",{onClick:()=>addSeries()},"➕ Seria"),
-  user && e("button",{onClick:()=>setTheme(theme==="dark"?"light":"dark")},"🌗")
- ),
+loadTitles();
 
- view==="home" && e("div",null,
-  e("input",{placeholder:"Szukaj...",value:search,onChange:e=>setSearch(e.target.value)}),
-  tags.map(tag=>
-   e("span",{key:tag,className:"tag "+(tagFilter.includes(tag)?"activeTag":""),onClick:()=>{
-    setTagFilter(tagFilter.includes(tag)?tagFilter.filter(t=>t!==tag):[...tagFilter,tag]);
-   }},tag)
-  ),
-  e("div",{className:"grid"},
-   filtered.map(s=>
-    e("div",{key:s.id,className:"card"},
-     e("b",{onClick:()=>{setActive(s);setView("series");}},s.title),
-     e("div",null,(s.tags||[]).join(", ")),
-     isAdmin && e("button",{onClick:()=>setSeries(series.filter(x=>x.id!==s.id))},"Usuń")
-    )
-   )
-  )
- ),
-
- view==="series" && active && e("div",{className:"card"},
-  e("h2",null,active.title),
-  active.chapters.map(ch=>
-   e("div",{key:ch.id},
-    e("button",{onClick:()=>{setReader(ch);setPage(0);}},ch.title),
-    isAdmin && e("button",{onClick:()=>{
-     setSeries(series.map(s=>
-      s.id===active.id?{...s,chapters:s.chapters.filter(c=>c.id!==ch.id)}:s
-     ));
-    }},"Usuń")
-   )
-  ),
-  isAdmin && e("button",{onClick:()=>addChapter(active)},"➕ Rozdział")
- ),
-
- view==="login" && e("div",{className:"card"},
-  e("input",{id:"mail",placeholder:"Email"}),
-  e("input",{id:"pass",type:"password",placeholder:"Hasło"}),
-  e("button",{onClick:()=>{
-   const m=document.getElementById("mail").value;
-   const p=document.getElementById("pass").value;
-   window.createUser(window.auth,m,p)
-   .catch(()=>window.signInUser(window.auth,m,p));
-  }},"Zaloguj")
- ),
-
- reader && e(Reader)
-);
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(e(App));
-}
 </script>
+
 </body>
 </html>
