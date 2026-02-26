@@ -45,10 +45,6 @@ header{
     box-shadow:0 0 10px #8000ff;
 }
 
-.search-box input::placeholder{
-    color:#c299ff;
-}
-
 .grid{
     display:flex;
     flex-wrap:wrap;
@@ -90,9 +86,7 @@ header{
     color:#b366ff;
 }
 
-.hidden{
-    display:none;
-}
+.hidden{ display:none; }
 
 button{
     background:#8000ff;
@@ -104,9 +98,7 @@ button{
     border-radius:6px;
 }
 
-button:hover{
-    background:#a64dff;
-}
+button:hover{ background:#a64dff; }
 
 .chapter-list div{
     background:#2a004d;
@@ -127,6 +119,53 @@ button:hover{
     border-radius:10px;
     box-shadow:0 0 20px rgba(128,0,255,0.5);
 }
+
+/* ZESPÓŁ */
+
+.team{
+    margin-top:60px;
+    text-align:center;
+}
+
+.team-grid{
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    flex-wrap:wrap;
+    margin-top:20px;
+}
+
+.member{
+    background:#1f0033;
+    padding:20px;
+    border-radius:15px;
+    width:220px;
+    box-shadow:0 0 15px rgba(128,0,255,0.4);
+}
+
+.member img{
+    width:100px;
+    height:100px;
+    border-radius:50%;
+    object-fit:cover;
+    margin-bottom:10px;
+}
+
+footer{
+    margin-top:60px;
+    text-align:center;
+    padding:20px;
+}
+
+footer a{
+    color:#d9b3ff;
+    font-size:18px;
+    text-decoration:none;
+}
+
+footer a:hover{
+    text-decoration:underline;
+}
 </style>
 </head>
 <body>
@@ -142,6 +181,27 @@ button:hover{
     </div>
 
     <div class="grid" id="titleList"></div>
+
+    <!-- SEKCJA ZESPÓŁ -->
+    <div class="team">
+        <h2>Nasz Zespół</h2>
+        <div class="team-grid">
+
+            <div class="member">
+                <img src="https://i.pravatar.cc/150?img=1">
+                <h3>Twoja Nazwa</h3>
+                <p>Założyciel / Tłumacz</p>
+            </div>
+
+            <div class="member">
+                <img src="https://i.pravatar.cc/150?img=2">
+                <h3>Druga Osoba</h3>
+                <p>Cleaner / Typesetter</p>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 
 <div id="seriesPage" class="hidden">
@@ -159,20 +219,22 @@ button:hover{
     <div class="reader" id="readerImages"></div>
 </div>
 
+<footer>
+    <a href="https://discord.gg/H4A5hTS7Gw" target="_blank">
+        💜 Dołącz do naszego Discorda
+    </a>
+</footer>
+
 </div>
 
 <script>
-
-/* =========================
-   🔥 TWOJE SERIE
-   ========================= */
 
 const mangaData = [
 
 {
     id:"Love-and-roll",
     title:"Love and Roll",
-    description:"Perkusista niezależnego zespołu wpada w emocjonalną relację z fotografem, którego od lat podziwia. Historia pełna napięcia, muzyki i skomplikowanych uczuć.",
+    description:"Perkusista niezależnego zespołu wpada w emocjonalną relację z fotografem.",
     cover:"https://ccdn.lezhin.com/v2/comics/7011732603881086/images/tall.webp?updated=1733476692171&width=420",
     tags:["Manhwa","Yaoi","Muzyka","Różnica wieku"],
     chapters:[
@@ -189,32 +251,20 @@ const mangaData = [
 {
     id:"The-golden-goose-dressed-as-Alpha-boss",
     title:"The golden goose dressed as Alpha boss",
-    description:"Opis: W swoim poprzednim życiu Lin Qiu był budzącym postrach szefem gangu. Podczas brutalnej konfrontacji między gangami został śmiertelnie postrzelony tracąc przytomność. Kiedy wrócił... leżał w łóżku, a obok niego znajdował się mężczyzna, który właśnie się rozbierał! Lin Qiu natychmiast powstrzymał go siłą. Ale facet nie tylko nie był przestraszony, ale nawet całkiem współpracował! Lin Qiu oczywiście korzystał z seksownej bielizny. Tak... seksownej bielizny. CO?! Wtedy Lin Qiu zdał sobie sprawę, że teleportował się do świata ABO, i był teraz utrzymywaną omegą, utrzymankiem kogoś innego... A jego alfa? Cóż, nie było to dokładnie, czego się spodziewał.",
+    description:"Były szef gangu budzi się w świecie ABO jako omega.",
     cover:"https://s1.mbcdnsaa.org/res/manga/the-golden-goose-dressed-as-alpha-boss/chapter-1/OvaGMdikoz8OA9s9cZQ75g.jpeg",
-    tags:["Manhua","Yaoi","Omegaverse","Zmiana ciał","Mafia"],
+    tags:["Manhua","Yaoi","Omegaverse","Mafia"],
     chapters:[
         {
             name:"Rozdział 1",
             images:[
-                "images/crimson/ch1/1.jpg",
-                "images/crimson/ch1/2.jpg"
-            ]
-        },
-        {
-            name:"Rozdział 2",
-            images:[
-                "images/crimson/ch2/1.jpg",
-                "images/crimson/ch2/2.jpg"
+                "images/crimson/ch1/1.jpg"
             ]
         }
     ]
 }
 
 ];
-
-/* =========================
-   LOGIKA
-   ========================= */
 
 const titleList = document.getElementById("titleList");
 const home = document.getElementById("home");
@@ -225,7 +275,6 @@ let currentSeries = null;
 
 function loadTitles(filter=""){
     titleList.innerHTML="";
-
     mangaData
     .filter(series=>{
         const text=(series.title+" "+series.tags.join(" ")).toLowerCase();
@@ -244,16 +293,14 @@ function loadTitles(filter=""){
     });
 }
 
-function searchManga(){
-    const value=document.getElementById("searchInput").value;
-    loadTitles(value);
-}
-
 function openSeries(id){
     const series=mangaData.find(s=>s.id===id);
     currentSeries=series;
 
+    history.pushState(null,null,`?series=${id}`);
+
     home.classList.add("hidden");
+    readerPage.classList.add("hidden");
     seriesPage.classList.remove("hidden");
 
     document.getElementById("seriesTitle").innerText=series.title;
@@ -274,6 +321,8 @@ function openSeries(id){
 function openReader(index){
     const chapter=currentSeries.chapters[index];
 
+    history.pushState(null,null,`?series=${currentSeries.id}&chapter=${index}`);
+
     seriesPage.classList.add("hidden");
     readerPage.classList.remove("hidden");
 
@@ -291,17 +340,31 @@ function openReader(index){
 }
 
 function goHome(){
+    history.pushState(null,null,`/`);
     seriesPage.classList.add("hidden");
     readerPage.classList.add("hidden");
     home.classList.remove("hidden");
 }
 
 function backToSeries(){
-    readerPage.classList.add("hidden");
-    seriesPage.classList.remove("hidden");
+    openSeries(currentSeries.id);
+}
+
+function checkURL(){
+    const params=new URLSearchParams(window.location.search);
+    const series=params.get("series");
+    const chapter=params.get("chapter");
+
+    if(series){
+        openSeries(series);
+        if(chapter){
+            openReader(parseInt(chapter));
+        }
+    }
 }
 
 loadTitles();
+checkURL();
 
 </script>
 
