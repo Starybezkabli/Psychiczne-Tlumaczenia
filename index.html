@@ -382,6 +382,17 @@ function checkURL(){
 loadTitles();
 checkURL();
 
+    function searchManga(){
+    const value = document
+        .getElementById("searchInput")
+        .value
+        .trim()
+        .toLowerCase();
+
+    loadTitles(value);
+}
+
+
 </script>
 
 </body>
