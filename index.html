@@ -166,6 +166,35 @@ footer a{
 footer a:hover{
     text-decoration:underline;
 }
+
+    /* TELEFONY */
+@media (max-width: 600px){
+
+    .grid{
+        gap:15px;
+    }
+
+    .card{
+        width:45%;   /* dwie karty obok siebie */
+    }
+
+    .card img{
+        height:200px;  /* mniejsza okładka */
+    }
+
+    .card h3{
+        font-size:14px;  /* mniejszy tytuł */
+    }
+
+    .tags{
+        font-size:10px;
+    }
+
+    .search-box input{
+        width:90%;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -344,6 +373,22 @@ const mangaData = [
     description:"Nami, który przebywa w więzieniu, coraz bardziej przyzwyczaja się do przemocy i dominacji Hyun-ah. Czy to zwykły instynkt przetrwania... czy też wypaczona miłość?",
     cover:"https://cdn.mangaupdates.com/image/i487445.jpg",
     tags:["Manhwa","Yuri","Romans","Więzienie","Dla dorosłych","Zbrodnie"],
+    chapters:[
+        {
+            name:"Rozdział 1",
+            images:[
+                "images/crimson/ch1/1.jpg"
+            ]
+        }
+    ]
+}, 
+{
+    id:"La-Mèche",
+    title:"La Mèche",
+    description:"Hwaseon oszczędzał każdy cent, aby pokonać swój głęboko zakorzeniony kompleks dotyczący jego wyglądu, podejmując się operacji plastycznej. Ale kiedy okrutna informacja 'brak środków na koncie' niszczy jego marzenia, z desperacji sięga po ostatnią z opcji - firmę pożyczkową. Tak spotyka Sikyunga, szalenie przystojnego mężczyznę, który jest zbyt dobry, by być prawdziwy. Ale za tą niebiańską twarzą kryje się coś bardziej niebezpiecznego niż Hwaseon mógłby sobie wyobrażać.
+'Myślisz, że możesz tak po prostu uciec? Powinieneś chociaż raz mi się oddać, zanim odejdziesz.'",
+    cover:"https://res.mbbcdn.com/thumb/la-meche.png",
+    tags:["Manhwa","Yaoi","Romans","Więzienie","Dla dorosłych","Róznica wiewku"],
     chapters:[
         {
             name:"Rozdział 1",
