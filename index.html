@@ -111,20 +111,29 @@ button:hover{ background:#a64dff; }
 .chapter-list div:hover{
     background:#3d0066;
 }
-    
-.reader{
-    width:100vw;          /* pełna szerokość ekranu */
+
+html, body{
     margin:0;
     padding:0;
+    background:black; /* opcjonalnie dla readera */
 }
 
-.reader img{
-    width:100vw;          /* pełna szerokość */
-    height:auto;
-    display:block;        /* usuwa mikroszczeliny */
+/* kontener czytnika */
+.reader{
+    width:100%;
     margin:0;
     padding:0;
-    border:none;
+    line-height:0;   /* usuwa mikro-przerwy */
+}
+
+/* obrazy */
+.reader img{
+    width:100%;      /* zamiast 100vw */
+    height:auto;
+    display:block;
+    margin:0;
+    padding:0;
+    border:0;
 }
 
 /* ZESPÓŁ */
@@ -598,6 +607,7 @@ checkURL();
 
 </body>
 </html>
+
 
 
 
